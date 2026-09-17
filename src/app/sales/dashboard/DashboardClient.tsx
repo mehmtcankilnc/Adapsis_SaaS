@@ -80,7 +80,7 @@ export default function DashboardClient({ rawQuotes, role, error }: any) {
         const d = new Date();
         d.setMonth(d.getMonth() - (11 - i));
         return {
-          monthKey: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+          key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
           name: d.toLocaleDateString('tr-TR', { month: 'short', year: 'numeric' }),
           count: 0
         };
@@ -88,7 +88,7 @@ export default function DashboardClient({ rawQuotes, role, error }: any) {
       filteredQuotes.forEach((q: any) => {
         const d = new Date(q.created_at);
         const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const m = last12Months.find(x => x.monthKey === k);
+        const m = last12Months.find(x => x.key === k);
         if (m) m.count++;
       });
       return last12Months;
@@ -98,14 +98,14 @@ export default function DashboardClient({ rawQuotes, role, error }: any) {
       const d = new Date();
       d.setDate(d.getDate() - (days - 1 - i));
       return {
-        dateStr: d.toISOString().split('T')[0],
+        key: d.toISOString().split('T')[0],
         name: d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }),
         count: 0
       };
     });
     filteredQuotes.forEach((q: any) => {
       const qDate = new Date(q.created_at).toISOString().split('T')[0];
-      const match = arr.find(x => x.dateStr === qDate);
+      const match = arr.find(x => x.key === qDate);
       if (match) match.count++;
     });
     return arr;

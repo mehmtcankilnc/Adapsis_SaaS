@@ -114,7 +114,9 @@ export async function TopHeader() {
               >
                 Ürün Kataloğu
                 {!isSuperAdmin && (
-                  <Eye className="w-4 h-4 text-slate-500 opacity-70" title="Sadece Görüntüleme" />
+                  <span title="Sadece Görüntüleme">
+                    <Eye className="w-4 h-4 text-slate-500 opacity-70" />
+                  </span>
                 )}
               </Link>
               <Link
@@ -123,7 +125,9 @@ export async function TopHeader() {
               >
                 {isSuperAdmin && <ShieldCheck className="w-4 h-4 opacity-70" />} Envanter
                 {!isSuperAdmin && (
-                  <Eye className="w-4 h-4 text-slate-500 opacity-70" title="Sadece Görüntüleme" />
+                  <span title="Sadece Görüntüleme">
+                    <Eye className="w-4 h-4 text-slate-500 opacity-70" />
+                  </span>
                 )}
               </Link>
               {isSuperAdmin && (
