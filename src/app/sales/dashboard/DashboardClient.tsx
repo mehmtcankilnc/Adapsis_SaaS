@@ -127,8 +127,8 @@ export default function DashboardClient({ rawQuotes, role, error }: any) {
     ];
   }, [filteredQuotes]);
   
-  // Empty State Check
-  if (metrics.total === 0) {
+  // Empty State Check — hiç kayıt var mı diye ham veriye bakılır, seçili zaman filtresine değil
+  if (!rawQuotes || rawQuotes.length === 0) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center bg-slate-50 p-4">
         <div className="max-w-md text-center bg-white p-10 rounded-2xl shadow-sm border border-slate-200">
