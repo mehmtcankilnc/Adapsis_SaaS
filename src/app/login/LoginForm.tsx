@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { toast } from 'sonner'
 import { loginUserAction } from '@/actions/auth.actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -82,7 +83,7 @@ export function LoginForm() {
         <div className="text-sm">
           <button 
             type="button" 
-            onClick={() => alert("Güvenlik protokolü gereği parolalar sistem yöneticisi (Admin) tarafından yönetilir. Şifrenizi sıfırlamak için lütfen IT departmanınızla veya yöneticinizle irtibata geçiniz.")} 
+            onClick={() => toast.info("Güvenlik protokolü gereği parolalar sistem yöneticisi (Admin) tarafından yönetilir. Şifrenizi sıfırlamak için lütfen IT departmanınızla veya yöneticinizle irtibata geçiniz.")}
             className="font-medium text-brand-600 hover:text-brand-500"
           >
             Sistem Şifremi Unuttum
@@ -91,14 +92,19 @@ export function LoginForm() {
       </div>
 
       <div>
-        <Button 
-          type="submit" 
-          disabled={isPending} 
-          variant="primary" 
+        <Button
+          type="submit"
+          disabled={isPending}
+          variant="primary"
           className="w-full bg-slate-900 hover:bg-slate-800 text-white shadow-md font-medium text-base h-11"
         >
-          {isPending ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : null}
-          Sisteme Giriş Yap
+          {isPending ? (
+            <>
+              <Loader2 className="animate-spin h-5 w-5 mr-2" /> Giriş Yapılıyor...
+            </>
+          ) : (
+            "Sisteme Giriş Yap"
+          )}
         </Button>
       </div>
     </form>

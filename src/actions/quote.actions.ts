@@ -3,6 +3,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getErrorMessage } from "@/lib/utils";
+import type { ProductVariant, QuoteConfigurationItem, QuoteStatus } from "@/types/product.types";
+
+interface StockCheckItem {
+  inventory_id: string;
+  required_amount: number;
+}
 
 /**
  * Teklif konfigürasyonunu Postgres JSONB-uyumlu array formatına dönüştürür.
@@ -11,23 +18,23 @@ import { redirect } from "next/navigation";
  */
 function normalizeConfigurationToArray(
   selections: Record<string, string>,
-  variants?: any[],
-): any[] {
+  variants?: Pick<ProductVariant, "id" | "options">[],
+): QuoteConfigurationItem[] {
   // selections objesini array'e çevir
-  const configArray: any[] = [];
+  const configArray: QuoteConfigurationItem[] = [];
 
   for (const [variantId, optionValue] of Object.entries(selections)) {
-    const entry: any = {
+    const entry: QuoteConfigurationItem = {
       variant_id: variantId,
       selected_value: optionValue,
     };
 
     // Eğer variant bilgisi varsa, stok bilgilerini de ekle
     if (variants && Array.isArray(variants)) {
-      const variant = variants.find((v: any) => v.id === variantId);
+      const variant = variants.find((v) => v.id === variantId);
       if (variant && variant.options) {
         const selectedOption = variant.options.find(
-          (o: any) => o.value === optionValue,
+          (o) => o.value === optionValue,
         );
         if (selectedOption) {
           entry.label = selectedOption.label;
@@ -49,15 +56,15 @@ export async function createQuoteAction(data: {
   product_id: string;
   customer_id: string;
   customer_contact?: string;
-  configuration: any;
+  configuration: Record<string, string> | QuoteConfigurationItem[];
   base_price_snapshot: number;
   final_price: number;
   currency: string;
-  variants?: any[];
+  variants?: Pick<ProductVariant, "id" | "options">[];
   discount_percentage?: number;
 }) {
   let isSuccess = false;
-  let errorMsg = null;
+  let errorMsg: string | null = null;
 
   try {
     const supabase = await createClient();
@@ -80,6 +87,56 @@ export async function createQuoteAction(data: {
       ? data.configuration
       : normalizeConfigurationToArray(data.configuration, data.variants);
 
+    // Stok doğrulaması: İstemci tarafı kontrolü atlanabileceğinden (örn.
+    // network isteği elle tetiklenirse), stokta yeterli miktar olup
+    // olmadığını burada da doğrula. Aksi halde satış temsilcisi stokta
+    // olmayan bir kalemi müşteriye teklif edebilir.
+    // Kaynak önceliği DB trigger'ıyla (bkz. migration 018) aynı olmalı:
+    // önce configuration (varyant bazlı inventory_id), o yoksa ürünün
+    // Malzeme Reçetesi (stock_recipe) — sistemdeki gerçek ürünlerin tamamı
+    // ikinci yöntemi kullanıyor.
+    let stockChecks: StockCheckItem[] = configArray
+      .filter((item) => item.inventory_id && Number(item.required_amount) > 0)
+      .map((item) => ({
+        inventory_id: item.inventory_id as string,
+        required_amount: Number(item.required_amount),
+      }));
+    if (stockChecks.length === 0) {
+      const { data: productRow } = await supabase
+        .from("products")
+        .select("stock_recipe")
+        .eq("id", data.product_id)
+        .single();
+      const recipe = productRow?.stock_recipe;
+      if (Array.isArray(recipe)) {
+        stockChecks = recipe
+          .filter((item) => item.inventory_id && Number(item.amount) > 0)
+          .map((item) => ({
+            inventory_id: item.inventory_id,
+            required_amount: Number(item.amount),
+          }));
+      }
+    }
+    if (stockChecks.length > 0) {
+      const invIds = [...new Set(stockChecks.map((i) => i.inventory_id))];
+      const { data: invRows } = await supabase
+        .from("inventory")
+        .select("id, item_name, stock_level, reserved_stock")
+        .in("id", invIds);
+
+      for (const item of stockChecks) {
+        const inv = invRows?.find((r) => r.id === item.inventory_id);
+        if (!inv) continue;
+        const available = Number(inv.stock_level) - Number(inv.reserved_stock || 0);
+        if (available < Number(item.required_amount)) {
+          return {
+            success: false,
+            error: `"${inv.item_name}" için stok yetersiz (Kullanılabilir: ${Math.max(available, 0)}, Gerekli: ${item.required_amount}).`,
+          };
+        }
+      }
+    }
+
     // Müşteri adını veritabanından çek (Yedek olarak customer_company alanına yazmak için)
     let customerCompanyFallback = "Bilinmeyen Müşteri";
     const { data: customerData } = await supabase
@@ -96,9 +153,18 @@ export async function createQuoteAction(data: {
     const discountPct = Math.max(0, Math.min(100, data.discount_percentage || 0));
     const discountedPrice = data.final_price * (1 - discountPct / 100);
 
-    // İskonto hiyerarşisi: %5'ten büyük indirimler admin onayı gerektirir
-    let quoteStatus = "pending";
-    if (discountPct > 5) {
+    // İskonto onay eşiği admin tarafından Ayarlar sayfasından yapılandırılabilir
+    // (bkz. global_settings.discount_approval_threshold); satır bulunamazsa %5
+    // varsayılana düşülür.
+    const { data: settingsRow } = await supabase
+      .from("global_settings")
+      .select("discount_approval_threshold")
+      .limit(1)
+      .maybeSingle();
+    const discountThreshold = Number(settingsRow?.discount_approval_threshold ?? 5);
+
+    let quoteStatus: QuoteStatus = "pending";
+    if (discountPct > discountThreshold) {
       quoteStatus = "pending_admin_approval";
     }
 
@@ -124,9 +190,9 @@ export async function createQuoteAction(data: {
     } else {
       isSuccess = true;
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Action Failed:", error);
-    errorMsg = error.message;
+    errorMsg = getErrorMessage(error);
   }
 
   // Next.js redirect metodu try-catch içindeyken "NEXT_REDIRECT" hatası fırlatma mekanizmasını bozduğu için dışarıda çağrılmalıdır.
@@ -145,10 +211,9 @@ export async function updateQuoteStatusAction(
   try {
     const supabase = await createClient();
 
-    // Önce teklifi çek (stok düşme işlemi için configuration + product bilgisi lazım)
     const { data: quote, error: fetchErr } = await supabase
       .from("quotes")
-      .select("configuration, status, product_id, discount_percentage, products(stock_recipe)")
+      .select("status")
       .eq("id", quoteId)
       .single();
 
@@ -162,7 +227,11 @@ export async function updateQuoteStatusAction(
       };
     }
 
-    // Durumu güncelle
+    // Durumu güncelle. Stok düşme / rezervasyon iade işlemleri artık tamamen
+    // veritabanı trigger'ı (trg_quote_stock_reservation, bkz. migration 016)
+    // tarafından, bu UPDATE ile aynı transaction içinde atomik olarak
+    // yürütülür. Burada tekrar elle stok güncellemesi YAPILMAZ — aksi halde
+    // rezervasyon iki kez düşülür (bkz. migration 016 açıklaması).
     const { error } = await supabase
       .from("quotes")
       .update({ status, is_read_by_sales: false })
@@ -170,103 +239,13 @@ export async function updateQuoteStatusAction(
 
     if (error) throw error;
 
-    // ===========================================================
-    // Stok işlemleri için envanter kalemlerini topla
-    // 1. Öncelik: configuration array'indeki inventory_id alanları (varyant bazlı)
-    // 2. Yedek: product.stock_recipe (ürün bazlı malzeme reçetesi)
-    // ===========================================================
-    type StockEntry = { invId: string; amount: number };
-    const stockEntries: StockEntry[] = [];
-
-    // Kaynak 1: Configuration array
-    const config = quote.configuration;
-    if (Array.isArray(config)) {
-      for (const item of config) {
-        if (item.inventory_id && Number(item.required_amount) > 0) {
-          stockEntries.push({
-            invId: item.inventory_id,
-            amount: Number(item.required_amount),
-          });
-        }
-      }
-    }
-
-    // Kaynak 2: Product stock_recipe (configuration'da stok bilgisi yoksa)
-    if (stockEntries.length === 0) {
-      const product = quote.products as any;
-      const recipe = product?.stock_recipe;
-      if (Array.isArray(recipe)) {
-        for (const item of recipe) {
-          if (item.inventory_id && Number(item.amount) > 0) {
-            stockEntries.push({
-              invId: item.inventory_id,
-              amount: Number(item.amount),
-            });
-          }
-        }
-      }
-    }
-
-    // Stok işlemlerini uygula
-    if (stockEntries.length > 0) {
-      if (status === "accepted" && quote.status === "pending") {
-        // Teklif onaylandı → Stok düş + Rezervasyonu temizle
-        for (const entry of stockEntries) {
-          const { data: inv } = await supabase
-            .from("inventory")
-            .select("stock_level, reserved_stock")
-            .eq("id", entry.invId)
-            .single();
-
-          if (inv) {
-            await supabase
-              .from("inventory")
-              .update({
-                stock_level: Math.max(
-                  Number(inv.stock_level) - entry.amount,
-                  0,
-                ),
-                reserved_stock: Math.max(
-                  Number(inv.reserved_stock) - entry.amount,
-                  0,
-                ),
-              })
-              .eq("id", entry.invId);
-          }
-        }
-      }
-
-      if (status === "rejected" && quote.status === "pending") {
-        // Teklif reddedildi → Sadece rezervasyonu geri iade et
-        for (const entry of stockEntries) {
-          const { data: inv } = await supabase
-            .from("inventory")
-            .select("reserved_stock")
-            .eq("id", entry.invId)
-            .single();
-
-          if (inv) {
-            await supabase
-              .from("inventory")
-              .update({
-                reserved_stock: Math.max(
-                  Number(inv.reserved_stock) - entry.amount,
-                  0,
-                ),
-              })
-              .eq("id", entry.invId);
-          }
-        }
-      }
-    }
-
     revalidatePath("/sales/quotes");
     revalidatePath(`/sales/quotes/${quoteId}`);
     revalidatePath("/admin/inventory");
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Status Update Failed:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: getErrorMessage(error) };
   }
 }
 
@@ -329,9 +308,9 @@ export async function approveDiscountAction(
     revalidatePath("/sales/quotes");
     revalidatePath(`/sales/quotes/${quoteId}`);
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Discount Approval Failed:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: getErrorMessage(error) };
   }
 }
 
@@ -353,7 +332,7 @@ export async function markQuotesAsReadAction(role: "admin" | "sales", quoteId?: 
     
     revalidatePath("/sales/quotes");
     return { success: true };
-  } catch (error) {
+  } catch {
     return { success: false };
   }
 }

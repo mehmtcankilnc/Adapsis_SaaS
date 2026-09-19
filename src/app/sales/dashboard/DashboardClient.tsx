@@ -2,16 +2,58 @@
 
 import React, { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
-import { BarChart3, TrendingUp, CheckCircle2, Box, FileText, AlertCircle, Calendar as CalendarIcon } from 'lucide-react'
+import { BarChart3, TrendingUp, TrendingDown, Minus, CheckCircle2, Box, FileText, AlertCircle, Trophy } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useGlobalStore } from '@/store/global-store'
 import { subDays, subMonths, subYears, isAfter } from 'date-fns'
+import type { QuoteStatus } from '@/types/product.types'
 
-const COLORS = ['#eab308', '#059669', '#dc2626'] // Yellow(Pending), Emerald(Accepted), Red(Rejected)
+const COLORS = ['#eab308', '#059669', '#dc2626', '#7c3aed'] // Yellow(Pending), Emerald(Accepted), Red(Rejected), Violet(Pending Admin Approval)
 
-export default function DashboardClient({ rawQuotes, role, error }: any) {
+function TrendBadge({ value }: { value: number | null }) {
+  if (value === null) return null;
+  const isUp = value > 0;
+  const isFlat = value === 0;
+  const Icon = isFlat ? Minus : isUp ? TrendingUp : TrendingDown;
+  const colorClass = isFlat
+    ? 'bg-slate-100 text-slate-500'
+    : isUp
+      ? 'bg-emerald-50 text-emerald-600'
+      : 'bg-red-50 text-red-600';
+
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded ${colorClass}`}>
+      <Icon className="w-3 h-3" />
+      {isUp ? '+' : ''}{value}%
+    </span>
+  );
+}
+
+export interface DashboardQuoteRow {
+  id: string
+  status: QuoteStatus
+  created_at: string
+  final_price: number
+  currency: string
+  created_by?: string | null
+  // Sadece admin görünümünde, page.tsx'te profiles JOIN ile doldurulur.
+  creator_name?: string
+  // NOT: quotes -> products many-to-one bir ilişki; PostgREST çalışma
+  // zamanında bunu tekil obje döndürür (dizi değil) — bkz. page.tsx'teki not.
+  products?: { name: string } | null
+}
+
+export default function DashboardClient({
+  rawQuotes,
+  role,
+  error,
+}: {
+  rawQuotes: DashboardQuoteRow[]
+  role: string
+  error?: string
+}) {
   const { globalCurrency } = useGlobalStore();
   const [rates, setRates] = useState<Record<string, number>>({});
   const [timeFilter, setTimeFilter] = useState('7days');
@@ -31,7 +73,32 @@ export default function DashboardClient({ rawQuotes, role, error }: any) {
     else if (timeFilter === '1month') cutoff = subMonths(now, 1);
     else if (timeFilter === '1year') cutoff = subYears(now, 1);
 
-    return rawQuotes.filter((q: any) => isAfter(new Date(q.created_at), cutoff));
+    return rawQuotes.filter((q) => isAfter(new Date(q.created_at), cutoff));
+  }, [rawQuotes, timeFilter]);
+
+  // Bir önceki dönemle karşılaştırma (trend) için: aynı uzunlukta, hemen
+  // önceki zaman penceresindeki kayıtlar. "Tüm Zamanlar" için referans
+  // dönem olmadığından trend hesaplanmaz.
+  const previousFilteredQuotes = useMemo(() => {
+    if (!rawQuotes || timeFilter === 'all') return [];
+    const now = new Date();
+    let cutoff = new Date(0);
+    let previousCutoff = new Date(0);
+    if (timeFilter === '7days') {
+      cutoff = subDays(now, 7);
+      previousCutoff = subDays(now, 14);
+    } else if (timeFilter === '1month') {
+      cutoff = subMonths(now, 1);
+      previousCutoff = subMonths(now, 2);
+    } else if (timeFilter === '1year') {
+      cutoff = subYears(now, 1);
+      previousCutoff = subYears(now, 2);
+    }
+
+    return rawQuotes.filter((q) => {
+      const d = new Date(q.created_at);
+      return isAfter(d, previousCutoff) && !isAfter(d, cutoff);
+    });
   }, [rawQuotes, timeFilter]);
 
   const metrics = useMemo(() => {
@@ -40,14 +107,16 @@ export default function DashboardClient({ rawQuotes, role, error }: any) {
     let acceptedCount = 0;
     const productCounts: Record<string, number> = {};
 
-    filteredQuotes.forEach((q: any) => {
+    filteredQuotes.forEach((q) => {
       if (q.status === 'accepted') acceptedCount++;
       if (q.status === 'pending') {
         const c = q.currency || 'USD';
         const rateC = rates[c] || 1;
         const rateG = rates[globalCurrency] || 1;
-        // Convert to TRY first, then to globalCurrency
-        const valInGlobal = (Number(q.final_price) * rateC) / rateG;
+        // rates[X], 1 USD karşılığı X para birimi miktarını verir (bkz. /api/rates, base=USD).
+        // c para biriminden USD'ye çevirmek için rateC'ye böl, sonra USD'den
+        // globalCurrency'ye çevirmek için rateG ile çarp.
+        const valInGlobal = (Number(q.final_price) / rateC) * rateG;
         pendingPotentialRevenue += valInGlobal;
       }
       const pName = q.products?.name || 'Bilinmiyor';
@@ -71,6 +140,61 @@ export default function DashboardClient({ rawQuotes, role, error }: any) {
     };
   }, [filteredQuotes, rates, globalCurrency]);
 
+  // Trend rozetleri için bir önceki döneme ait aynı metrikler (popüler ürün hariç)
+  const previousMetrics = useMemo(() => {
+    const total = previousFilteredQuotes.length;
+    let pendingPotentialRevenue = 0;
+    let acceptedCount = 0;
+
+    previousFilteredQuotes.forEach((q) => {
+      if (q.status === 'accepted') acceptedCount++;
+      if (q.status === 'pending') {
+        const c = q.currency || 'USD';
+        const rateC = rates[c] || 1;
+        const rateG = rates[globalCurrency] || 1;
+        const valInGlobal = (Number(q.final_price) / rateC) * rateG;
+        pendingPotentialRevenue += valInGlobal;
+      }
+    });
+
+    return {
+      total,
+      pendingPotentialRevenue,
+      acceptanceRate: total > 0 ? Math.round((acceptedCount / total) * 100) : 0,
+    };
+  }, [previousFilteredQuotes, rates, globalCurrency]);
+
+  // total/acceptanceRate için önceki döneme göre yüzde değişim; "all" filtresinde
+  // veya önceki dönemde hiç kayıt yoksa null döner (trend gösterilmez).
+  const getTrend = (current: number, previous: number): number | null => {
+    if (timeFilter === 'all') return null;
+    if (previous === 0) return current > 0 ? null : 0;
+    return Math.round(((current - previous) / previous) * 100);
+  };
+
+  const totalTrend = getTrend(metrics.total, previousMetrics.total);
+  const acceptanceTrend = getTrend(metrics.acceptanceRate, previousMetrics.acceptanceRate);
+
+  // Admin temsilci sıralaması: filtrelenmiş dönemdeki teklifleri temsilciye göre grupla
+  const leaderboard = useMemo(() => {
+    if (role !== 'admin') return [];
+    const byRep: Record<string, { name: string; total: number; accepted: number }> = {};
+
+    filteredQuotes.forEach((q) => {
+      // created_by boşsa (eski/seed kayıtlar, sistem tarafından oluşturulanlar) gerçek
+      // bir temsilci olmadığından sıralamaya dahil edilmez.
+      if (!q.created_by) return;
+      const name = q.creator_name || 'Bilinmeyen';
+      if (!byRep[name]) byRep[name] = { name, total: 0, accepted: 0 };
+      byRep[name].total++;
+      if (q.status === 'accepted') byRep[name].accepted++;
+    });
+
+    return Object.values(byRep)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+  }, [filteredQuotes, role]);
+
   const lineData = useMemo(() => {
     const days = timeFilter === '7days' ? 7 : timeFilter === '1month' ? 30 : 365;
     // For 1year, line chart by day is too much, but we'll stick to it or aggregate by month for simplicity.
@@ -85,7 +209,7 @@ export default function DashboardClient({ rawQuotes, role, error }: any) {
           count: 0
         };
       });
-      filteredQuotes.forEach((q: any) => {
+      filteredQuotes.forEach((q) => {
         const d = new Date(q.created_at);
         const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         const m = last12Months.find(x => x.key === k);
@@ -103,7 +227,7 @@ export default function DashboardClient({ rawQuotes, role, error }: any) {
         count: 0
       };
     });
-    filteredQuotes.forEach((q: any) => {
+    filteredQuotes.forEach((q) => {
       const qDate = new Date(q.created_at).toISOString().split('T')[0];
       const match = arr.find(x => x.key === qDate);
       if (match) match.count++;
@@ -113,7 +237,7 @@ export default function DashboardClient({ rawQuotes, role, error }: any) {
 
   const pieData = useMemo(() => {
     const counts = { pending: 0, accepted: 0, rejected: 0, pending_admin_approval: 0 };
-    filteredQuotes.forEach((q: any) => {
+    filteredQuotes.forEach((q) => {
       if (q.status === 'pending') counts.pending++;
       if (q.status === 'accepted') counts.accepted++;
       if (q.status === 'rejected') counts.rejected++;
@@ -126,7 +250,24 @@ export default function DashboardClient({ rawQuotes, role, error }: any) {
       { name: 'İskonto Onayı', value: counts.pending_admin_approval },
     ];
   }, [filteredQuotes]);
-  
+
+  // Uzun süredir yanıt bekleyen teklifler — seçili zaman filtresinden bağımsız
+  // olarak TÜM kayıtlara bakılır, aksi halde "Son 7 Gün" filtresindeyken
+  // 3 hafta önce açılmış bekleyen bir teklif gözden kaçar.
+  const STALE_DAYS = 7;
+  const staleQuotes = useMemo(() => {
+    if (!rawQuotes) return [];
+    const now = Date.now();
+    return rawQuotes
+      .filter((q) => q.status === 'pending' || q.status === 'pending_admin_approval')
+      .filter((q) => (now - new Date(q.created_at).getTime()) / 86_400_000 > STALE_DAYS)
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  }, [rawQuotes]);
+
+  const oldestStaleDays = staleQuotes.length > 0
+    ? Math.floor((Date.now() - new Date(staleQuotes[0].created_at).getTime()) / 86_400_000)
+    : 0;
+
   // Empty State Check — hiç kayıt var mı diye ham veriye bakılır, seçili zaman filtresine değil
   if (!rawQuotes || rawQuotes.length === 0) {
     return (
@@ -191,6 +332,27 @@ export default function DashboardClient({ rawQuotes, role, error }: any) {
           )}
         </div>
 
+        {/* Uzun Süredir Yanıt Bekleyen Teklifler */}
+        {staleQuotes.length > 0 && (
+          <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-amber-800">
+                <span className="font-bold">{staleQuotes.length} teklif</span>{' '}
+                {STALE_DAYS} günden uzun süredir yanıt bekliyor
+                {oldestStaleDays > STALE_DAYS && (
+                  <> (en eskisi {oldestStaleDays} gün önce oluşturuldu)</>
+                )}.
+              </p>
+            </div>
+            <Link href="/sales/quotes" className="shrink-0">
+              <Button variant="outline" size="sm" className="bg-white border-amber-300 text-amber-700 hover:bg-amber-100">
+                Teklifleri Görüntüle
+              </Button>
+            </Link>
+          </div>
+        )}
+
         {/* 4 Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="border-slate-200 shadow-sm relative overflow-hidden">
@@ -200,7 +362,10 @@ export default function DashboardClient({ rawQuotes, role, error }: any) {
                 <div className="bg-blue-50 text-blue-600 p-2 rounded-md"><FileText className="h-5 w-5" /></div>
               </div>
               <div className="mt-2">
-                <div className="text-4xl font-black text-slate-900 tracking-tight">{metrics.total}</div>
+                <div className="flex items-center gap-2">
+                  <div className="text-4xl font-black text-slate-900 tracking-tight">{metrics.total}</div>
+                  <TrendBadge value={totalTrend} />
+                </div>
                 <div className="text-xs text-slate-500 mt-2 font-medium">Oluşturulan tüm kayıtlar</div>
               </div>
             </CardContent>
@@ -226,7 +391,10 @@ export default function DashboardClient({ rawQuotes, role, error }: any) {
                 <div className="bg-emerald-50 text-emerald-600 p-2 rounded-md"><CheckCircle2 className="h-5 w-5" /></div>
               </div>
               <div className="mt-2">
-                <div className="text-4xl font-black text-slate-900 tracking-tight">%{metrics.acceptanceRate}</div>
+                <div className="flex items-center gap-2">
+                  <div className="text-4xl font-black text-slate-900 tracking-tight">%{metrics.acceptanceRate}</div>
+                  <TrendBadge value={acceptanceTrend} />
+                </div>
                 <div className="text-xs mt-2 text-emerald-600 font-medium">Satışa dönenler</div>
               </div>
             </CardContent>
@@ -298,7 +466,7 @@ export default function DashboardClient({ rawQuotes, role, error }: any) {
                       dataKey="value"
                       stroke="none"
                     >
-                      {pieData.map((entry: any, index: number) => (
+                      {pieData.map((_entry, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -312,6 +480,46 @@ export default function DashboardClient({ rawQuotes, role, error }: any) {
             </CardContent>
           </Card>
         </div>
+
+        {/* Temsilci Sıralaması (yalnızca admin) */}
+        {role === 'admin' && leaderboard.length > 0 && (
+          <Card className="border-slate-200 shadow-sm mt-6">
+            <CardContent className="p-6">
+              <h3 className="text-base font-bold text-slate-800 flex items-center mb-5">
+                <Trophy className="w-5 h-5 mr-2 text-amber-500" /> Temsilci Sıralaması
+              </h3>
+              <div className="space-y-1">
+                {leaderboard.map((rep, i) => {
+                  const rate = rep.total > 0 ? Math.round((rep.accepted / rep.total) * 100) : 0;
+                  const maxTotal = leaderboard[0].total || 1;
+                  return (
+                    <div key={rep.name} className="flex items-center gap-4 py-2.5 border-b border-slate-100 last:border-0">
+                      <div className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                        i === 0 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {i + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-baseline mb-1">
+                          <span className="text-sm font-semibold text-slate-800 truncate">{rep.name}</span>
+                          <span className="text-xs text-slate-500 font-medium shrink-0 ml-2">
+                            {rep.total} teklif · %{rate} onay
+                          </span>
+                        </div>
+                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-brand-500 rounded-full"
+                            style={{ width: `${(rep.total / maxTotal) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
       </div>
     </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { toast } from 'sonner'
 import { Plus, Save, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,7 +12,6 @@ import { createInventoryItemAction } from '@/actions/inventory.actions'
 export default function AddInventoryButton() {
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     item_name: '',
@@ -25,27 +25,28 @@ export default function AddInventoryButton() {
     setOpen(status)
     if (status) {
       setFormData({ item_name: '', sku: '', unit: '', stock_level: 0 })
-      setErrorMsg(null)
     }
   }
 
   const handleSubmit = async () => {
     if (!formData.item_name || !formData.sku || !formData.unit) {
-      setErrorMsg('Lütfen tüm alanları doldurun.')
+      toast.error('Lütfen tüm alanları doldurun.')
       return
     }
 
     setIsSubmitting(true)
-    setErrorMsg(null)
 
     const res = await createInventoryItemAction(formData)
-    
+
     setIsSubmitting(false)
 
     if (res.success) {
+      toast.success('Stok kalemi eklendi')
       setOpen(false)
     } else {
-      setErrorMsg(res.error || 'Yeni stok kaydı eklenemedi.')
+      toast.error('Stok kalemi eklenemedi', {
+        description: res.error || undefined,
+      })
     }
   }
 
@@ -66,8 +67,6 @@ export default function AddInventoryButton() {
         </DialogHeader>
 
         <div className="p-6 space-y-4">
-          {errorMsg && <div className="text-sm font-medium text-red-600 bg-red-50 p-3 rounded">{errorMsg}</div>}
-          
           <div className="flex flex-col gap-4">
             <div className="space-y-2">
               <Label>Ham Madde / Parça Adı <span className="text-red-500">*</span></Label>
@@ -109,8 +108,11 @@ export default function AddInventoryButton() {
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)} disabled={isSubmitting}>İptal</Button>
           <Button variant="primary" className="bg-brand-600 hover:bg-brand-700" onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Sisteme Kaydet
+            {isSubmitting ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Kaydediliyor...</>
+            ) : (
+              <><Save className="mr-2 h-4 w-4" /> Sisteme Kaydet</>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

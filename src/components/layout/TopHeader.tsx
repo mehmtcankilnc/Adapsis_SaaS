@@ -13,6 +13,7 @@ import {
 import { logoutUserAction } from "@/actions/auth.actions";
 import { Button } from "@/components/ui/button";
 import { CurrencySelector } from "./CurrencySelector";
+import { MobileNav } from "./MobileNav";
 
 export async function TopHeader() {
   const supabase = await createClient();
@@ -63,7 +64,7 @@ export async function TopHeader() {
   }
 
   return (
-    <nav className="bg-slate-900 text-slate-100 border-b border-slate-800 sticky top-0 z-50">
+    <nav className="relative bg-slate-900 text-slate-100 border-b border-slate-800 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-14">
           {/* Logo ve Menüler */}
@@ -80,7 +81,7 @@ export async function TopHeader() {
               <span className="font-bold text-lg tracking-tight">Adapsis</span>
             </Link>
 
-            <div className="hidden md:flex items-center gap-1 font-medium text-sm">
+            <div className="hidden lg:flex items-center gap-1 font-medium text-sm">
               <Link
                 href="/sales/dashboard"
                 className="px-3 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
@@ -182,6 +183,12 @@ export async function TopHeader() {
                 <span className="hidden sm:inline">Çıkış Yap</span>
               </Button>
             </form>
+
+            <MobileNav
+              isSuperAdmin={isSuperAdmin}
+              unreadQuoteCount={unreadQuoteCount}
+              pendingRequestCount={pendingRequestCount}
+            />
           </div>
         </div>
       </div>

@@ -25,13 +25,16 @@ export default async function ConfiguratorPage({ params }: { params: Promise<{ p
 
   // Varyasyonları sort_order'a göre sırala
   if (product.product_variants) {
-    product.product_variants.sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0))
+    product.product_variants.sort(
+      (a: { sort_order?: number }, b: { sort_order?: number }) => (a.sort_order || 0) - (b.sort_order || 0),
+    )
   }
 
-  // Stok kontrolü için envanter listesini çek
+  // Stok kontrolü için envanter listesini çek (reserved_stock dahil —
+  // bekleyen tekliflerce ayrılmış miktar da hesaba katılmalı)
   const { data: inventoryList } = await supabase
     .from('inventory')
-    .select('id, item_name, stock_level')
+    .select('id, item_name, stock_level, reserved_stock')
 
   // Müşterileri çek
   const { data: customers } = await supabase
@@ -39,9 +42,22 @@ export default async function ConfiguratorPage({ params }: { params: Promise<{ p
     .select('id, company_name')
     .order('company_name')
 
+  // İskonto onay eşiği (admin tarafından Ayarlar sayfasından yapılandırılabilir)
+  const { data: settings } = await supabase
+    .from('global_settings')
+    .select('discount_approval_threshold')
+    .limit(1)
+    .maybeSingle()
+  const discountApprovalThreshold = Number(settings?.discount_approval_threshold ?? 5)
+
   return (
     <div className="min-h-screen bg-slate-50">
-      <ConfiguratorClient product={product} inventoryList={inventoryList || []} customers={customers || []} />
+      <ConfiguratorClient
+        product={product}
+        inventoryList={inventoryList || []}
+        customers={customers || []}
+        discountApprovalThreshold={discountApprovalThreshold}
+      />
     </div>
   )
 }

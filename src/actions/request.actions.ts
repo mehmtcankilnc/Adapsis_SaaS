@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { getErrorMessage } from "@/lib/utils";
 
 /**
  * Satış personeli tarafından ürün veya envanter güncelleme talebi oluşturur.
@@ -45,9 +46,9 @@ export async function createSystemRequestAction(data: {
 
     revalidatePath("/admin/requests");
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Request Action Failed:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: getErrorMessage(error) };
   }
 }
 
@@ -78,7 +79,7 @@ export async function updateSystemRequestAction(
       return { success: false, error: "Yetkiniz bulunmuyor." };
     }
 
-    const updateData: any = {
+    const updateData: { status: "approved" | "rejected"; updated_at: string; admin_response?: string } = {
       status,
       updated_at: new Date().toISOString(),
     };
@@ -99,8 +100,8 @@ export async function updateSystemRequestAction(
 
     revalidatePath("/admin/requests");
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Request Update Failed:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: getErrorMessage(error) };
   }
 }

@@ -1,11 +1,14 @@
 'use server'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { assertAdmin } from '@/lib/auth'
+import { getErrorMessage } from '@/lib/utils'
 
 export async function updateStockLevelAction(itemId: string, changeAmount: number) {
   try {
+    await assertAdmin()
     const supabase = await createClient()
-    
+
     // Anlık stoğu çek
     const { data: item, error: fetchErr } = await supabase
       .from('inventory')
@@ -29,15 +32,16 @@ export async function updateStockLevelAction(itemId: string, changeAmount: numbe
 
     revalidatePath('/admin/inventory')
     return { success: true }
-  } catch(e: any) {
-    return { success: false, error: e.message }
+  } catch (e: unknown) {
+    return { success: false, error: getErrorMessage(e) }
   }
 }
 
 export async function editInventoryItemAction(itemId: string, data: { item_name: string, sku: string, unit: string }) {
   try {
+    await assertAdmin()
     const supabase = await createClient()
-    
+
     const { error } = await supabase
       .from('inventory')
       .update({ 
@@ -51,15 +55,16 @@ export async function editInventoryItemAction(itemId: string, data: { item_name:
     
     revalidatePath('/admin/inventory')
     return { success: true }
-  } catch(e: any) {
-    return { success: false, error: e.message }
+  } catch (e: unknown) {
+    return { success: false, error: getErrorMessage(e) }
   }
 }
 
 export async function createInventoryItemAction(data: { item_name: string, sku: string, unit: string, stock_level: number }) {
   try {
+    await assertAdmin()
     const supabase = await createClient()
-    
+
     if (!data.item_name || !data.sku || !data.unit) {
       return { success: false, error: 'İsim, SKU ve Birim alanları zorunludur.' }
     }
@@ -77,7 +82,7 @@ export async function createInventoryItemAction(data: { item_name: string, sku: 
     
     revalidatePath('/admin/inventory')
     return { success: true }
-  } catch(e: any) {
-    return { success: false, error: e.message }
+  } catch (e: unknown) {
+    return { success: false, error: getErrorMessage(e) }
   }
 }

@@ -4,12 +4,13 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { UserManagementClient } from "./UserManagementClient";
 import { GeneralSettingsForm } from "./GeneralSettingsForm";
+import type { GlobalSettings } from "@/types/product.types";
 
 export function SettingsClient({
   settings,
   currentUserId,
 }: {
-  settings: any;
+  settings: GlobalSettings | null;
   currentUserId: string;
 }) {
   const [activeTab, setActiveTab] = useState<"general" | "users">("general");
@@ -18,12 +19,12 @@ export function SettingsClient({
     <div className="w-full">
       <div className="flex justify-center mb-8">
         <div className="relative flex bg-slate-200/50 rounded-full p-1 w-full max-w-sm">
-          {["general", "users"].map((tab) => {
+          {(["general", "users"] as const).map((tab) => {
             const isSelected = activeTab === tab;
             return (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab as any)}
+                onClick={() => setActiveTab(tab)}
                 className={`relative flex-1 py-2.5 text-sm font-semibold rounded-full z-10 transition-colors duration-300 ${
                   isSelected ? "text-brand-700" : "text-slate-500 hover:text-slate-700"
                 }`}
@@ -50,7 +51,7 @@ export function SettingsClient({
       >
         {activeTab === "general" ? (
           <div className="bg-white border border-slate-200 p-8 rounded-xl shadow-sm">
-            <GeneralSettingsForm settings={settings || {}} />
+            <GeneralSettingsForm settings={settings} />
           </div>
         ) : (
           <UserManagementClient currentUserId={currentUserId} />

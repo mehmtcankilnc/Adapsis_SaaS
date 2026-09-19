@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { getErrorMessage } from "@/lib/utils";
 
 export async function createCustomerAction(data: {
   company_name: string;
@@ -42,8 +43,8 @@ export async function createCustomerAction(data: {
 
     revalidatePath("/shared/customers");
     return { success: true, customer: newCustomer };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Action Failed:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: getErrorMessage(error) };
   }
 }

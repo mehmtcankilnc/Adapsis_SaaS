@@ -1,29 +1,9 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
-
-// ─── Guard: Sadece admin kullanıcılar çağırabilir ───
-async function assertAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Oturum bulunamadı.");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profile?.role !== "admin") {
-    throw new Error("Bu işlem için admin yetkisi gereklidir.");
-  }
-
-  return user;
-}
+import { assertAdmin } from "@/lib/auth";
+import { getErrorMessage } from "@/lib/utils";
 
 // ─── Kullanıcı Listesi ───
 export async function listUsersAction() {
@@ -60,9 +40,9 @@ export async function listUsersAction() {
     });
 
     return { success: true, users: merged };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("listUsersAction hatası:", error);
-    return { success: false, error: error.message, users: [] };
+    return { success: false, error: getErrorMessage(error), users: [] };
   }
 }
 
@@ -113,9 +93,9 @@ export async function createUserAction(data: {
 
     revalidatePath("/admin/settings");
     return { success: true, userId: newUser?.id };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("createUserAction hatası:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: getErrorMessage(error) };
   }
 }
 
@@ -155,9 +135,9 @@ export async function updateUserAction(
 
     revalidatePath("/admin/settings");
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("updateUserAction hatası:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: getErrorMessage(error) };
   }
 }
 
@@ -180,8 +160,8 @@ export async function deleteUserAction(userId: string) {
 
     revalidatePath("/admin/settings");
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("deleteUserAction hatası:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: getErrorMessage(error) };
   }
 }

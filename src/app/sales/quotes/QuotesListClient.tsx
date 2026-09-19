@@ -11,11 +11,38 @@ import {
   useReactTable,
   getCoreRowModel,
   flexRender,
-  createColumnHelper,
   ColumnDef
 } from '@tanstack/react-table'
+import type { QuoteStatus } from '@/types/product.types'
 
-export function QuotesListClient({ quotes, role }: { quotes: any[], role: string }) {
+export interface QuoteListRow {
+  id: string
+  customer_company: string | null
+  customer_contact?: string | null
+  final_price: number
+  currency: string
+  status: QuoteStatus
+  created_at: string
+  discount_percentage: number
+  created_by?: string | null
+  products?: { name: string } | { name: string }[] | null
+  creator_name?: string
+}
+
+function getProductName(products: QuoteListRow['products']): string | undefined {
+  if (!products) return undefined
+  return Array.isArray(products) ? products[0]?.name : products.name
+}
+
+export function QuotesListClient({
+  quotes,
+  role,
+  discountApprovalThreshold = 5,
+}: {
+  quotes: QuoteListRow[]
+  role: string
+  discountApprovalThreshold?: number
+}) {
   const [search, setSearch] = useState('')
   const isAdmin = role === 'admin'
 
@@ -41,17 +68,15 @@ export function QuotesListClient({ quotes, role }: { quotes: any[], role: string
   const filteredQuotes = React.useMemo(() => {
     return quotes?.filter(q => {
       const qName = q.customer_company?.toLowerCase() || ''
-      const pName = ((q.products as unknown) as { name: string })?.name || ''
+      const pName = getProductName(q.products) || ''
       const cName = q.creator_name?.toLowerCase() || ''
       const s = search.toLowerCase()
       return qName.includes(s) || pName.toLowerCase().includes(s) || cName.includes(s)
     }) || []
   }, [quotes, search]);
 
-  const colSpan = isAdmin ? 8 : 6
-
-  const columns = React.useMemo<ColumnDef<any>[]>(() => {
-    const cols: ColumnDef<any>[] = [
+  const columns = React.useMemo<ColumnDef<QuoteListRow>[]>(() => {
+    const cols: ColumnDef<QuoteListRow>[] = [
       {
         accessorFn: (row) => row.customer_company,
         id: 'customer_company',
@@ -67,7 +92,7 @@ export function QuotesListClient({ quotes, role }: { quotes: any[], role: string
         size: 200,
       },
       {
-        accessorFn: (row) => ((row.products as unknown) as { name: string })?.name || 'Bilinmeyen Ürün',
+        accessorFn: (row) => getProductName(row.products) || 'Bilinmeyen Ürün',
         id: 'product_name',
         header: 'Ürün Modeli',
         cell: (info) => <div className="truncate text-sm text-slate-700" title={info.getValue() as string}>{info.getValue() as string}</div>,
@@ -111,7 +136,7 @@ export function QuotesListClient({ quotes, role }: { quotes: any[], role: string
             <div className="text-center">
               {discountPct > 0 ? (
                 <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
-                  discountPct > 5 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'
+                  discountPct > discountApprovalThreshold ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'
                 }`}>
                   <Percent className="h-3 w-3" />
                   {discountPct}
@@ -140,7 +165,7 @@ export function QuotesListClient({ quotes, role }: { quotes: any[], role: string
       header: 'Durum',
       cell: (info) => {
         const stat = statusMap[info.getValue() as string] || { label: info.getValue(), variant: 'secondary' };
-        return <Badge variant={stat.variant as any}>{stat.label}</Badge>;
+        return <Badge variant={stat.variant}>{stat.label}</Badge>;
       },
       size: 130,
     });
@@ -161,7 +186,7 @@ export function QuotesListClient({ quotes, role }: { quotes: any[], role: string
     });
 
     return cols;
-  }, [isAdmin]);
+  }, [isAdmin, discountApprovalThreshold]);
 
   const table = useReactTable({
     data: filteredQuotes,

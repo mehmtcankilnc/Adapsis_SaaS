@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   Check,
   Info,
@@ -28,17 +29,21 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { createQuoteAction } from "@/actions/quote.actions";
 import { createCustomerAction } from "@/actions/customer.actions";
+import type { Customer, InventoryItem, PriceEffect, Product } from "@/types/product.types";
 
 export default function ConfiguratorClient({
   product,
   inventoryList,
   customers: initialCustomers,
+  discountApprovalThreshold = 5,
 }: {
-  product: any;
-  inventoryList: any[];
-  customers: any[];
+  product: Product;
+  inventoryList: Pick<InventoryItem, "id" | "item_name" | "stock_level" | "reserved_stock">[];
+  customers: Customer[];
+  discountApprovalThreshold?: number;
 }) {
   const init = useSalesConfiguratorStore((s) => s.initialize);
   const variants = useSalesConfiguratorStore((s) => s.variants);
@@ -64,8 +69,6 @@ export default function ConfiguratorClient({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [customerContact, setCustomerContact] = useState("");
   const [isSubmittingQuote, setIsSubmittingQuote] = useState(false);
-  const [quoteSuccessMsg, setQuoteSuccessMsg] = useState<string | null>(null);
-  const [quoteErrorMsg, setQuoteErrorMsg] = useState<string | null>(null);
 
   // Müşteri Seçimi / Hızlı Ekleme
   const [customers, setCustomers] = useState(initialCustomers);
@@ -129,7 +132,7 @@ export default function ConfiguratorClient({
     return "text-2xl";
   };
 
-  const formatEffect = (effect: any) => {
+  const formatEffect = (effect: PriceEffect) => {
     if (effect.amount === 0) return "";
     if (effect.type === "fixed") {
       const val = convertAmount(effect.amount);
@@ -148,6 +151,39 @@ export default function ConfiguratorClient({
 
   const rawConvertedTotal = getConvertedTotal();
   const convertedBase = convertAmount(Number(product.base_price));
+
+  // Seçili konfigürasyonda stok yetersiz olan bir kalem var mı?
+  // Varsa teklif oluşturmayı engelle — aksi halde satış temsilcisi stokta
+  // olmayan bir ürünü müşteriye teklif edebilir.
+  // İki farklı stok kaynağı var: (1) varyant seçeneğine bağlı envanter
+  // kalemi (inventory_item_id), (2) ürünün Malzeme Reçetesi (stock_recipe) —
+  // sistemdeki ürünlerin tamamı ikinci yöntemi kullanıyor, bu yüzden ikisi
+  // de kontrol edilmeli.
+  const hasOutOfStockVariantSelection = variants.some((variant) => {
+    const selVal = selections[variant.id];
+    const opt = variant.options?.find((o) => o.value === selVal);
+    if (!opt || !opt.inventory_item_id) return false;
+    const stockRef = inventoryList.find(
+      (i) => i.id === opt.inventory_item_id,
+    );
+    if (!stockRef) return false;
+    const available =
+      Number(stockRef.stock_level) - Number(stockRef.reserved_stock || 0);
+    return available < (opt.required_amount || 1);
+  });
+
+  const hasInsufficientStockRecipe = (product.stock_recipe || []).some(
+    (item) => {
+      if (!item.inventory_id) return false;
+      const stockRef = inventoryList.find((i) => i.id === item.inventory_id);
+      if (!stockRef) return false;
+      const available =
+        Number(stockRef.stock_level) - Number(stockRef.reserved_stock || 0);
+      return available < (Number(item.amount) || 1);
+    },
+  );
+
+  const hasOutOfStockSelection = hasOutOfStockVariantSelection || hasInsufficientStockRecipe;
 
   // İskonto hesaplama
   const discountAmount = rawConvertedTotal * (discountPct / 100);
@@ -174,8 +210,6 @@ export default function ConfiguratorClient({
   // Teklif Kaydetme İşlemi
   const handleCreateQuote = async () => {
     setIsSubmittingQuote(true);
-    setQuoteErrorMsg(null);
-    setQuoteSuccessMsg(null);
 
     const result = await createQuoteAction({
       product_id: product.id,
@@ -189,22 +223,32 @@ export default function ConfiguratorClient({
       discount_percentage: discountPct,
     });
 
-    if (!result.success) {
-      setQuoteErrorMsg(result.error);
-      setIsSubmittingQuote(false);
-    } else {
-      setQuoteSuccessMsg("Teklif başarıyla sisteme kaydedildi! ✓");
+    setIsSubmittingQuote(false);
 
-      // Bildirim sonrası modalı sıfırlayıp kapatalım
-      setTimeout(() => {
-        setIsSubmittingQuote(false);
-        setIsDialogOpen(false);
-        setSelectedCustomer(null);
-        setCustomerContact("");
-        setQuoteSuccessMsg(null);
-      }, 2500);
+    if (!result.success) {
+      toast.error("Teklif oluşturulamadı", { description: result.error });
+    } else {
+      toast.success("Teklif başarıyla sisteme kaydedildi");
+      setIsDialogOpen(false);
+      setSelectedCustomer(null);
+      setCustomerContact("");
     }
   };
+
+  // Klavye kısayolu: teklif modalı açıkken Ctrl/Cmd+Enter ile hızlı kaydet
+  const canSubmitQuote =
+    !isSubmittingQuote && !!selectedCustomerId && !hasOutOfStockSelection;
+  useEffect(() => {
+    if (!isDialogOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        if (canSubmitQuote) handleCreateQuote();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isDialogOpen, canSubmitQuote, handleCreateQuote]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -222,6 +266,14 @@ export default function ConfiguratorClient({
           <p className="mt-2 text-slate-600 max-w-2xl text-base">
             {product.description}
           </p>
+        )}
+        {hasInsufficientStockRecipe && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm font-medium text-red-700 flex items-center max-w-2xl">
+            <AlertTriangle className="h-4 w-4 mr-2 shrink-0" />
+            Bu ürünün üretimi için gereken ham madde/parça stoğu yetersiz.
+            Seçtiğiniz varyasyondan bağımsız olarak bu ürün için teklif
+            oluşturulamaz.
+          </div>
         )}
       </div>
 
@@ -256,12 +308,14 @@ export default function ConfiguratorClient({
                     // Stok Kontrolü
                     const stockRef = option.inventory_item_id
                       ? inventoryList.find(
-                          (i: any) => i.id === option.inventory_item_id,
+                          (i) => i.id === option.inventory_item_id,
                         )
                       : null;
+                    const availableStock = stockRef
+                      ? Number(stockRef.stock_level) - Number(stockRef.reserved_stock || 0)
+                      : 0;
                     const isOutOfStock =
-                      stockRef &&
-                      stockRef.stock_level < (option.required_amount || 1);
+                      stockRef && availableStock < (option.required_amount || 1);
 
                     return (
                       <div
@@ -315,9 +369,18 @@ export default function ConfiguratorClient({
 
                         {/* Inventory Feedback */}
                         {isOutOfStock ? (
-                          <div className="mt-auto text-[11px] font-semibold text-red-600 flex items-center bg-red-50 p-1.5 rounded border border-red-100 uppercase tracking-widest">
-                            YETERSİZ STOK ({stockRef.stock_level} Kaldı)
-                          </div>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="mt-auto text-[11px] font-semibold text-red-600 flex items-center bg-red-50 p-1.5 rounded border border-red-100 uppercase tracking-widest cursor-help">
+                                YETERSİZ STOK ({Math.max(availableStock, 0)} Kullanılabilir)
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Bu seçenek için {option.required_amount || 1} adet
+                              gerekiyor, envanterde {Math.max(availableStock, 0)} adet
+                              kullanılabilir stok var.
+                            </TooltipContent>
+                          </Tooltip>
                         ) : stockRef ? (
                           <div className="mt-auto text-[11px] font-semibold text-emerald-600 flex items-center uppercase tracking-widest opacity-60">
                             Stok Yeterli
@@ -387,8 +450,18 @@ export default function ConfiguratorClient({
 
                   {/* İskonto Alanı */}
                   <div className="border-t border-slate-200 pt-4">
-                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                       İndirim Uygula
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info tabIndex={0} className="h-3.5 w-3.5 text-slate-400 cursor-help normal-case outline-none" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          %{discountApprovalThreshold}&apos;e kadar iskontolar doğrudan
+                          uygulanır. Üzerindeki iskontolar admin onayına gönderilir ve
+                          teklif onaylanana kadar &quot;Onay Bekliyor&quot; durumunda kalır.
+                        </TooltipContent>
+                      </Tooltip>
                     </label>
                     <div className="flex items-center gap-2">
                       <div className="relative flex-1">
@@ -411,12 +484,12 @@ export default function ConfiguratorClient({
                         <Percent className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       </div>
                     </div>
-                    {discountPct > 5 && (
+                    {discountPct > discountApprovalThreshold && (
                       <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
                         <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                         <p className="text-[11px] text-amber-700 font-medium leading-snug">
-                          %5 üzeri iskontolar admin onayı gerektirir. Bu teklif
-                          onay sürecine alınacaktır.
+                          %{discountApprovalThreshold} üzeri iskontolar admin onayı
+                          gerektirir. Bu teklif onay sürecine alınacaktır.
                         </p>
                       </div>
                     )}
@@ -493,15 +566,12 @@ export default function ConfiguratorClient({
                         </DialogDescription>
                       </DialogHeader>
                       <div className="p-6 space-y-5">
-                        {quoteErrorMsg && (
-                          <div className="p-3 bg-red-50 text-red-700 rounded-md text-sm font-medium border border-red-200">
-                            {quoteErrorMsg}
-                          </div>
-                        )}
-                        {quoteSuccessMsg && (
-                          <div className="p-3 bg-emerald-50 text-emerald-700 rounded-md text-sm font-medium border border-emerald-200 flex items-center">
-                            <Check className="h-5 w-5 mr-2" />
-                            {quoteSuccessMsg}
+                        {hasOutOfStockSelection && (
+                          <div className="p-3 bg-red-50 text-red-700 rounded-md text-sm font-medium border border-red-200 flex items-start gap-2">
+                            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                            Seçilen konfigürasyonda stokta yeterli miktarda
+                            bulunmayan bir kalem var. Teklif oluşturmadan önce
+                            lütfen seçimlerinizi güncelleyin.
                           </div>
                         )}
 
@@ -517,7 +587,7 @@ export default function ConfiguratorClient({
                               className="flex flex-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               <option value="">-- Müşteri Seçin --</option>
-                              {customers.map((c: any) => (
+                              {customers.map((c) => (
                                 <option key={c.id} value={c.id}>
                                   {c.company_name}
                                 </option>
@@ -601,30 +671,35 @@ export default function ConfiguratorClient({
                         <Button
                           variant="ghost"
                           onClick={() => setIsDialogOpen(false)}
-                          disabled={isSubmittingQuote || !!quoteSuccessMsg}
+                          disabled={isSubmittingQuote}
                         >
                           İptal
                         </Button>
-                        <Button
-                          variant="primary"
-                          onClick={handleCreateQuote}
-                          disabled={
-                            isSubmittingQuote ||
-                            !selectedCustomerId ||
-                            !!quoteSuccessMsg
-                          }
-                        >
-                          {isSubmittingQuote ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-                              Kaydediliyor...
-                            </>
-                          ) : (
-                            <>
-                              <Check className="mr-2 h-4 w-4" /> Teklifi Kaydet
-                            </>
-                          )}
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="primary"
+                              onClick={handleCreateQuote}
+                              disabled={
+                                isSubmittingQuote ||
+                                !selectedCustomerId ||
+                                hasOutOfStockSelection
+                              }
+                            >
+                            {isSubmittingQuote ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                                Kaydediliyor...
+                              </>
+                            ) : (
+                              <>
+                                <Check className="mr-2 h-4 w-4" /> Teklifi Kaydet
+                              </>
+                            )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Ctrl / Cmd + Enter ile hızlı kaydet</TooltipContent>
+                        </Tooltip>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
@@ -636,7 +711,7 @@ export default function ConfiguratorClient({
               <Info className="h-5 w-5 text-brand-500 mr-3 shrink-0" />
               <p>
                 Gerçek zamanlı TCMB bazlı kurlar kullanılmaktadır. Nakliye vb.
-                hizmetler Sipariş Ekranı'nda eklenecektir.
+                hizmetler Sipariş Ekranı&apos;nda eklenecektir.
               </p>
             </div>
           </div>

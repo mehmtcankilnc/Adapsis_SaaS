@@ -15,9 +15,9 @@ export function Dialog({ children, open: controlledOpen, onOpenChange }: { child
 export function DialogTrigger({ children, asChild }: { children: React.ReactNode, asChild?: boolean }) {
   const { setOpen } = React.useContext(DialogContext)
   if (asChild && React.isValidElement(children)) {
-    const childElement = children as React.ReactElement<any>;
+    const childElement = children as React.ReactElement<{ onClick?: (e: React.MouseEvent) => void }>;
     return React.cloneElement(childElement, {
-      onClick: (e: any) => {
+      onClick: (e: React.MouseEvent) => {
         setOpen(true)
         if (childElement.props.onClick) childElement.props.onClick(e)
       }
@@ -32,7 +32,7 @@ export function DialogContent({ children, className }: { children: React.ReactNo
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setOpen(false)} />
-      <div className={cn("relative z-50 w-full sm:max-w-[425px] max-h-[85vh] flex flex-col items-stretch text-left bg-white rounded-xl shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-200", className)}>
+      <div className={cn("relative z-50 w-full sm:max-w-[425px] max-h-[85vh] flex flex-col items-stretch text-left bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200", className)}>
         {/* Close button — sticky, always visible */}
         <button onClick={() => setOpen(false)} className="absolute top-4 right-4 z-10 text-slate-400 hover:text-slate-600 transition-colors bg-white/80 backdrop-blur-sm hover:bg-slate-100 rounded-full p-1 border border-slate-200/50">
           <X className="h-4 w-4" />

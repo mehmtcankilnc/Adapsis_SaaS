@@ -21,3 +21,31 @@
     color: var(--foreground);
   }
 }
+
+/* Shimmer / skeleton yükleme efekti — bkz. src/components/ui/skeleton.tsx */
+@keyframes shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--shimmer-base, #e2e8f0) 25%,
+    var(--shimmer-highlight, #f1f5f9) 37%,
+    var(--shimmer-base, #e2e8f0) 63%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-shimmer {
+    animation: none;
+    background: var(--shimmer-base, #e2e8f0);
+  }
+}

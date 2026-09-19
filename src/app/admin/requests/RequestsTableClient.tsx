@@ -16,20 +16,21 @@ import {
 import { Search, CheckCircle2, XCircle, MessageSquare, Package, Layers, Loader2, Inbox } from 'lucide-react'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { updateSystemRequestAction } from '@/actions/request.actions'
+import type { SystemRequest } from '@/types/product.types'
 
-export function RequestsTableClient({ requests }: { requests: any[] }) {
+export function RequestsTableClient({ requests }: { requests: SystemRequest[] }) {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
-  
+
   // Review dialog
-  const [reviewItem, setReviewItem] = useState<any>(null)
+  const [reviewItem, setReviewItem] = useState<SystemRequest | null>(null)
   const [adminResponse, setAdminResponse] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
   const statusMap: Record<string, { label: string, variant: "warning" | "success" | "destructive" }> = {
     'pending': { label: 'Bekliyor', variant: 'warning' },
-    'approved': { label: 'İşleme Alındı', variant: 'success' },
+    'approved': { label: 'Onaylandı', variant: 'success' },
     'rejected': { label: 'Reddedildi', variant: 'destructive' },
   }
 
@@ -38,7 +39,8 @@ export function RequestsTableClient({ requests }: { requests: any[] }) {
     'inventory': { label: 'Envanter', icon: Layers },
   }
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '—'
     return new Intl.DateTimeFormat('tr-TR', {
       day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
     }).format(new Date(dateStr))
@@ -126,6 +128,11 @@ export function RequestsTableClient({ requests }: { requests: any[] }) {
                       icon={Inbox}
                       title={search || filter !== 'all' ? "Sonuç Bulunamadı" : "Henüz Talep Yok"}
                       description={search || filter !== 'all' ? "Filtrelere uygun talep bulunamadı." : "Satış personelinden henüz bir güncelleme talebi gelmemiş."}
+                      action={search || filter !== 'all' ? (
+                        <Button variant="outline" onClick={() => { setSearch(''); setFilter('all') }}>
+                          Filtreleri Temizle
+                        </Button>
+                      ) : undefined}
                     />
                   </td>
                 </tr>
@@ -254,6 +261,13 @@ export function RequestsTableClient({ requests }: { requests: any[] }) {
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 resize-none"
                 />
               </div>
+
+              <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-700 leading-relaxed">
+                <strong>Not:</strong> Onaylamak yalnızca bu talebi kapatır ve satış temsilcisine bildirim gönderir.
+                İlgili ürün/envanter kaydındaki değişikliği ayrı olarak siz{' '}
+                <strong>Ürün Kataloğu</strong> veya <strong>Envanter</strong> sayfasından uygulamalısınız — sistem
+                otomatik bir güncelleme yapmaz.
+              </div>
             </div>
 
             <DialogFooter className="flex gap-2 sm:justify-end">
@@ -264,11 +278,10 @@ export function RequestsTableClient({ requests }: { requests: any[] }) {
                 className="bg-red-600 hover:bg-red-700"
               >
                 {isProcessing ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> İşleniyor...</>
                 ) : (
-                  <XCircle className="mr-2 h-4 w-4" />
+                  <><XCircle className="mr-2 h-4 w-4" /> Reddet</>
                 )}
-                Reddet
               </Button>
               <Button
                 variant="primary"
@@ -277,11 +290,10 @@ export function RequestsTableClient({ requests }: { requests: any[] }) {
                 className="bg-emerald-600 hover:bg-emerald-700 hover:text-emerald-50 text-white"
               >
                 {isProcessing ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> İşleniyor...</>
                 ) : (
-                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  <><CheckCircle2 className="mr-2 h-4 w-4" /> Talebi Onayla (Otomatik Uygulanmaz)</>
                 )}
-                Onayla / İşleme Al
               </Button>
             </DialogFooter>
           </DialogContent>

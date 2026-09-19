@@ -41,6 +41,13 @@ export default async function QuotesPage() {
     console.error('Teklifler çekilemedi:', error.message)
   }
 
+  const { data: settings } = await supabase
+    .from('global_settings')
+    .select('discount_approval_threshold')
+    .limit(1)
+    .maybeSingle()
+  const discountApprovalThreshold = Number(settings?.discount_approval_threshold ?? 5)
+
   // Admin görüntüsü: Satış Temsilcisi bilgisini profiles JOIN ile çek
   let quotesWithProfiles = quotes || []
   if (role === 'admin' && quotesWithProfiles.length > 0) {
@@ -85,7 +92,7 @@ export default async function QuotesPage() {
       </header>
 
       {/* Ana Liste (Arama + Tablo) */}
-      <QuotesListClient quotes={quotesWithProfiles} role={role} />
+      <QuotesListClient quotes={quotesWithProfiles} role={role} discountApprovalThreshold={discountApprovalThreshold} />
     </div>
   )
 }

@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Building2, Search, Loader2, Check } from "lucide-react";
+import { toast } from "sonner";
+import { Plus, Building2, Search, Loader2, Check, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { EmptyState } from "@/components/shared/EmptyState";
 import {
   Table,
   TableBody,
@@ -23,8 +25,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { createCustomerAction } from "@/actions/customer.actions";
+import type { Customer } from "@/types/product.types";
 
-export function CustomersClient({ initialCustomers }: { initialCustomers: any[] }) {
+export function CustomersClient({ initialCustomers }: { initialCustomers: Customer[] }) {
   const [customers, setCustomers] = useState(initialCustomers);
   const [search, setSearch] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -37,7 +40,6 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: any[] 
   const [address, setAddress] = useState("");
   
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const filteredCustomers = customers.filter(
     (c) =>
@@ -48,7 +50,6 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: any[] 
 
   const handleCreateCustomer = async () => {
     setIsSubmitting(true);
-    setErrorMsg(null);
 
     const res = await createCustomerAction({
       company_name: companyName,
@@ -58,8 +59,11 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: any[] 
       address,
     });
 
+    setIsSubmitting(false);
+
     if (res.success && res.customer) {
       setCustomers([res.customer, ...customers]);
+      toast.success("Müşteri oluşturuldu");
       setIsDialogOpen(false);
       setCompanyName("");
       setContactName("");
@@ -67,10 +71,10 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: any[] 
       setPhone("");
       setAddress("");
     } else {
-      setErrorMsg(res.error || "Müşteri oluşturulurken bir hata oluştu.");
+      toast.error("Müşteri oluşturulamadı", {
+        description: res.error || "Beklenmeyen bir hata oluştu.",
+      });
     }
-    
-    setIsSubmitting(false);
   };
 
   return (
@@ -100,11 +104,6 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: any[] 
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              {errorMsg && (
-                <div className="p-3 bg-red-50 text-red-700 text-sm rounded border border-red-200">
-                  {errorMsg}
-                </div>
-              )}
               <div className="space-y-2">
                 <Label>Firma Adı <span className="text-red-500">*</span></Label>
                 <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Örn: ABC Lojistik A.Ş." />
@@ -138,19 +137,46 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: any[] 
         </Dialog>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Firma Adı</TableHead>
-            <TableHead>Yetkili Kişi</TableHead>
-            <TableHead>İletişim</TableHead>
-            <TableHead>Adres</TableHead>
-            <TableHead className="text-right">Kayıt Tarihi</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredCustomers.length > 0 ? (
-            filteredCustomers.map((customer) => (
+      {filteredCustomers.length === 0 ? (
+        <div className="p-8 bg-slate-50/30">
+          <EmptyState
+            icon={search ? Search : Users}
+            title={search ? "Sonuç Bulunamadı" : "Henüz Müşteri Yok"}
+            description={
+              search
+                ? `"${search}" ile eşleşen bir müşteri bulunamadı.`
+                : "Sistemde kayıtlı bir müşteri bulunmuyor. İlk müşterinizi ekleyerek başlayın."
+            }
+            action={
+              search ? (
+                <Button variant="outline" onClick={() => setSearch("")}>
+                  Aramayı Temizle
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  className="bg-brand-600 hover:bg-brand-700"
+                  onClick={() => setIsDialogOpen(true)}
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Yeni Müşteri Ekle
+                </Button>
+              )
+            }
+          />
+        </div>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Firma Adı</TableHead>
+              <TableHead>Yetkili Kişi</TableHead>
+              <TableHead>İletişim</TableHead>
+              <TableHead>Adres</TableHead>
+              <TableHead className="text-right">Kayıt Tarihi</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredCustomers.map((customer) => (
               <TableRow key={customer.id}>
                 <TableCell className="font-semibold text-slate-800">
                   <div className="flex items-center">
@@ -170,19 +196,13 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: any[] 
                   {customer.address || "—"}
                 </TableCell>
                 <TableCell className="text-right text-slate-500 text-sm">
-                  {new Date(customer.created_at).toLocaleDateString("tr-TR")}
+                  {customer.created_at ? new Date(customer.created_at).toLocaleDateString("tr-TR") : "—"}
                 </TableCell>
               </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={5} className="text-center py-8 text-slate-500">
-                Müşteri bulunamadı.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+            ))}
+          </TableBody>
+        </Table>
+      )}
     </div>
   );
 }

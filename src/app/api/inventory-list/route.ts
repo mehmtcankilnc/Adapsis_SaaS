@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { getErrorMessage } from '@/lib/utils'
 
 export async function GET() {
   try {
@@ -12,7 +13,7 @@ export async function GET() {
     if (error) throw error
 
     return NextResponse.json({ items: items || [] })
-  } catch (error: any) {
-    return NextResponse.json({ items: [], error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    return NextResponse.json({ items: [], error: getErrorMessage(error) }, { status: 500 })
   }
 }

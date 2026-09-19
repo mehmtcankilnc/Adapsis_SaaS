@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import { MessageSquarePlus, Send, Loader2, Check, Package, Layers } from 'lucide-react'
+import { toast } from 'sonner'
+import { MessageSquarePlus, Send, Loader2, Package, Layers } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
@@ -24,13 +25,9 @@ export function RequestUpdateButton({ requestType, itemId, itemName }: RequestUp
   const [isOpen, setIsOpen] = useState(false)
   const [note, setNote] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [successMsg, setSuccessMsg] = useState<string | null>(null)
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const handleSubmit = async () => {
     setIsSubmitting(true)
-    setErrorMsg(null)
-    setSuccessMsg(null)
 
     const result = await createSystemRequestAction({
       request_type: requestType,
@@ -42,14 +39,13 @@ export function RequestUpdateButton({ requestType, itemId, itemName }: RequestUp
     setIsSubmitting(false)
 
     if (result.success) {
-      setSuccessMsg('Talebiniz başarıyla iletildi!')
-      setTimeout(() => {
-        setIsOpen(false)
-        setNote('')
-        setSuccessMsg(null)
-      }, 2000)
+      toast.success('Talebiniz iletildi')
+      setIsOpen(false)
+      setNote('')
     } else {
-      setErrorMsg(result.error || 'Talep oluşturulamadı.')
+      toast.error('Talep oluşturulamadı', {
+        description: result.error || undefined,
+      })
     }
   }
 
@@ -61,7 +57,7 @@ export function RequestUpdateButton({ requestType, itemId, itemName }: RequestUp
     <>
       <Button
         variant="outline"
-        onClick={() => { setIsOpen(true); setErrorMsg(null); setSuccessMsg(null) }}
+        onClick={() => setIsOpen(true)}
         className="h-8 text-xs font-semibold px-3 bg-white hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300 border-slate-200 transition-colors"
       >
         <MessageSquarePlus className="h-3 w-3 mr-1.5" /> Güncelleme Talep Et
@@ -79,19 +75,6 @@ export function RequestUpdateButton({ requestType, itemId, itemName }: RequestUp
           {/* Scrollable Body */}
           <div className="overflow-y-auto px-5 py-4">
             <div className="flex flex-col gap-4">
-
-              {/* Durum Mesajları */}
-              {errorMsg && (
-                <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm font-medium border border-red-200">
-                  {errorMsg}
-                </div>
-              )}
-              {successMsg && (
-                <div className="p-3 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium border border-emerald-200 flex items-center gap-2">
-                  <Check className="h-4 w-4 shrink-0" />
-                  <span>{successMsg}</span>
-                </div>
-              )}
 
               {/* Kalem Bilgisi */}
               <div className={`rounded-lg border p-3 flex items-center gap-3 ${
@@ -137,7 +120,7 @@ export function RequestUpdateButton({ requestType, itemId, itemName }: RequestUp
               variant="ghost"
               size="sm"
               onClick={() => setIsOpen(false)}
-              disabled={isSubmitting || !!successMsg}
+              disabled={isSubmitting}
             >
               İptal
             </Button>
@@ -146,7 +129,7 @@ export function RequestUpdateButton({ requestType, itemId, itemName }: RequestUp
               size="sm"
               className="bg-brand-600 hover:bg-brand-700"
               onClick={handleSubmit}
-              disabled={isSubmitting || note.trim().length < 5 || !!successMsg}
+              disabled={isSubmitting || note.trim().length < 5}
             >
               {isSubmitting ? (
                 <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Gönderiliyor...</>

@@ -2,6 +2,10 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { assertAdmin } from '@/lib/auth'
+import { normalizeVariants } from '@/lib/variant-utils'
+import { getErrorMessage } from '@/lib/utils'
+import type { ProductVariant, StockRecipeItem } from '@/types/product.types'
 
 export async function getCategoriesAction() {
   try {
@@ -11,25 +15,46 @@ export async function getCategoriesAction() {
       .select('id, name')
       .eq('is_active', true)
       .order('sort_order')
-    
+
     if (error) {
       console.error('Kategori çekme hatası:', error)
       return { success: false, error: error.message }
     }
-    
+
     return { success: true, data: categories }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
-export async function createProductAction(data: any) {
+export interface CreateProductInput {
+  categoryId: string
+  name: string
+  sku?: string
+  description?: string
+  basePrice: number | string
+  baseCurrency: string
+  variants?: Partial<ProductVariant>[]
+  stockRecipe?: StockRecipeItem[]
+}
+
+export async function createProductAction(data: CreateProductInput) {
   try {
+    await assertAdmin()
     const supabase = await createClient()
 
     // UUID (Category ID) Validasyonu
     if (!data.categoryId || typeof data.categoryId !== 'string' || data.categoryId.trim() === '') {
       return { success: false, error: 'Ürünü kaydetmek için lütfen geçerli bir kategori seçin.' }
+    }
+
+    if (!data.name || typeof data.name !== 'string' || data.name.trim() === '') {
+      return { success: false, error: 'Ürün adı zorunludur.' }
+    }
+
+    const basePrice = parseFloat(String(data.basePrice))
+    if (!Number.isFinite(basePrice) || basePrice < 0) {
+      return { success: false, error: 'Lütfen geçerli, sıfır veya pozitif bir taban fiyat girin.' }
     }
 
     // 1. Insert main product
@@ -39,7 +64,7 @@ export async function createProductAction(data: any) {
         name: data.name,
         sku: data.sku || null,
         description: data.description || null,
-        base_price: parseFloat(data.basePrice),
+        base_price: basePrice,
         base_currency: data.baseCurrency,
         category_id: data.categoryId,
         is_active: true,
@@ -55,7 +80,8 @@ export async function createProductAction(data: any) {
 
     // 2. Insert variants
     if (data.variants && data.variants.length > 0) {
-      const variantsToInsert = data.variants.map((v: any, i: number) => ({
+      const normalizedVariants = normalizeVariants(data.variants)
+      const variantsToInsert = normalizedVariants.map((v, i: number) => ({
         product_id: product.id,
         group_name: v.group_name || `Parametre ${i+1}`,
         sort_order: v.sort_order || i,
@@ -76,8 +102,8 @@ export async function createProductAction(data: any) {
 
     revalidatePath('/admin/products')
     return { success: true, data: product }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Action Failed:', error)
-    return { success: false, error: error.message }
+    return { success: false, error: getErrorMessage(error) }
   }
 }

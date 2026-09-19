@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { Printer, Check, X, Loader2, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { updateQuoteStatusAction, approveDiscountAction } from '@/actions/quote.actions'
@@ -27,9 +28,10 @@ export default function QuoteActions({
     const res = await updateQuoteStatusAction(quoteId, newStatus)
     setIsUpdating(false)
     if (res.success) {
+      toast.success(newStatus === 'accepted' ? 'Teklif onaylandı' : 'Teklif reddedildi')
       router.refresh()
     } else {
-      alert('Durum güncellenirken bir hata oluştu: ' + res.error)
+      toast.error('Durum güncellenemedi', { description: res.error })
     }
   }
 
@@ -38,9 +40,10 @@ export default function QuoteActions({
     const res = await approveDiscountAction(quoteId, action)
     setIsUpdating(false)
     if (res.success) {
+      toast.success(action === 'approve' ? 'İskonto onaylandı' : 'İskonto reddedildi')
       router.refresh()
     } else {
-      alert('İskonto işlemi sırasında hata: ' + res.error)
+      toast.error('İskonto işlemi başarısız', { description: res.error })
     }
   }
 
@@ -52,7 +55,7 @@ export default function QuoteActions({
       {/* Yazdır butonu */}
       <Button 
         variant="outline" 
-        onClick={() => canPrint ? window.print() : alert('İskonto onayı bekleyen teklifler için PDF çıktısı alınamaz.')} 
+        onClick={() => canPrint ? window.print() : toast.warning('İskonto onayı bekleyen teklifler için PDF çıktısı alınamaz.')}
         className={`bg-white border-slate-300 text-slate-700 ${!canPrint ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <Printer className="mr-2 h-4 w-4" /> Yazdır / PDF
@@ -67,8 +70,11 @@ export default function QuoteActions({
             disabled={isUpdating}
             className="bg-red-600 hover:bg-red-700"
           >
-            {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldAlert className="mr-2 h-4 w-4" />}
-            İskontoyu Reddet
+            {isUpdating ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> İşleniyor...</>
+            ) : (
+              <><ShieldAlert className="mr-2 h-4 w-4" /> İskontoyu Reddet</>
+            )}
           </Button>
           <Button
             variant="default"
@@ -76,8 +82,11 @@ export default function QuoteActions({
             onClick={() => handleDiscountAction('approve')}
             disabled={isUpdating}
           >
-            {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
-            İskontoyu Onayla (%{discountPercentage})
+            {isUpdating ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> İşleniyor...</>
+            ) : (
+              <><ShieldCheck className="mr-2 h-4 w-4" /> İskontoyu Onayla (%{discountPercentage})</>
+            )}
           </Button>
         </>
       )}
@@ -90,17 +99,23 @@ export default function QuoteActions({
             onClick={() => handleUpdate('rejected')} 
             disabled={isUpdating}
           >
-            {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
-            Reddet
+            {isUpdating ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> İşleniyor...</>
+            ) : (
+              <><X className="mr-2 h-4 w-4" /> Reddet</>
+            )}
           </Button>
-          <Button 
-            variant="default" 
+          <Button
+            variant="default"
             className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-            onClick={() => handleUpdate('accepted')} 
-            disabled={isUpdating} 
+            onClick={() => handleUpdate('accepted')}
+            disabled={isUpdating}
           >
-            {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
-            Onayla
+            {isUpdating ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> İşleniyor...</>
+            ) : (
+              <><Check className="mr-2 h-4 w-4" /> Onayla</>
+            )}
           </Button>
         </>
       )}

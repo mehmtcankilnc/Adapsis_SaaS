@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 
 import {
   Card,
@@ -27,22 +28,24 @@ import { Label } from "@/components/ui/label";
 import { SelectNative } from "@/components/ui/select-native";
 import { useProductBuilderStore } from "@/store/product-builder";
 import { createProductAction, getCategoriesAction } from "@/actions/product.actions";
-import { PriceEffectType } from "@/types/product.types";
-
-interface StockRequirement {
-  inventory_id: string;
-  amount: number;
-}
+import { PriceEffectType, StockRecipeItem, InventoryItem } from "@/types/product.types";
 
 export default function NewProductPage() {
   const router = useRouter();
   const store = useProductBuilderStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
-  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
-  const [stockRecipe, setStockRecipe] = useState<StockRequirement[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [stockRecipe, setStockRecipe] = useState<StockRecipeItem[]>([]);
+
+  React.useEffect(() => {
+    // Zustand store'u modül seviyesinde bir singleton olduğundan, önceki bir
+    // "Yeni Ürün Ekle" denemesinden kalan taslak veriler (isim, fiyat,
+    // varyasyonlar) burada temizlenmezse bu sayfaya her dönüşte geri gelir.
+    // Bu yüzden sayfa her mount olduğunda store sıfırlanır.
+    store.reset();
+  }, []);
 
   React.useEffect(() => {
     async function loadData() {
@@ -69,7 +72,6 @@ export default function NewProductPage() {
 
   const handleSave = async () => {
     setIsSubmitting(true);
-    setErrorMsg(null);
 
     const result = await createProductAction({
       name: store.name,
@@ -83,11 +85,13 @@ export default function NewProductPage() {
     });
 
     if (!result.success) {
-      setErrorMsg(
-        result.error || "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.",
-      );
+      toast.error("Ürün kaydedilemedi", {
+        description:
+          result.error || "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.",
+      });
       setIsSubmitting(false);
     } else {
+      toast.success("Ürün oluşturuldu");
       store.reset();
       router.push("/admin/products");
     }
@@ -98,22 +102,22 @@ export default function NewProductPage() {
       {/* Header section */}
       <header className="sticky top-0 z-30 bg-white border-b border-slate-200">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3 sm:py-0 sm:h-16">
+            <div className="flex items-center space-x-4 min-w-0">
               <Link
                 href="/admin/products"
-                className="p-2 -ml-2 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                className="p-2 -ml-2 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors shrink-0"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Link>
-              <div>
-                <h1 className="text-xl font-semibold text-slate-900">
+              <div className="min-w-0">
+                <h1 className="text-xl font-semibold text-slate-900 truncate">
                   Yeni Ürün Ekle
                 </h1>
               </div>
             </div>
 
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 shrink-0">
               <Button
                 variant="ghost"
                 onClick={() => router.push("/admin/products")}
@@ -142,12 +146,6 @@ export default function NewProductPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {errorMsg && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start text-red-800">
-            <p className="text-sm font-medium">{errorMsg}</p>
-          </div>
-        )}
-
         {/* Overview Section */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-4 space-y-6">
@@ -502,7 +500,7 @@ export default function NewProductPage() {
                             className="w-full"
                           >
                             <option value="">-- Kalem Seçin --</option>
-                            {inventoryItems.map((inv: any) => (
+                            {inventoryItems.map((inv) => (
                               <option key={inv.id} value={inv.id}>
                                 {inv.item_name} ({inv.sku}) — Stok: {inv.stock_level} {inv.unit}
                               </option>

@@ -5,6 +5,16 @@ import { ArrowLeft, Hexagon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import QuoteActions from './QuoteActions'
 import { markQuotesAsReadAction } from '@/actions/quote.actions'
+import type { PriceEffect, ProductVariant, QuoteConfigurationItem } from '@/types/product.types'
+
+interface QuoteDetailProduct {
+  name: string
+  sku: string | null
+  description: string | null
+  base_price: number
+  base_currency: string
+  product_variants: ProductVariant[]
+}
 
 export default async function QuoteDetailPage({ params }: { params: Promise<{ quoteId: string }> }) {
   const resolvedParams = await params
@@ -31,10 +41,6 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ qu
     .single()
 
   if (quote) {
-    // If quote exists, mark as read for the current role
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
-    const role = profile?.role || 'sales'
     await markQuotesAsReadAction(role as "admin" | "sales", quoteId)
   }
 
@@ -55,7 +61,14 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ qu
     creatorName = creatorProfile?.full_name || 'Bilinmeyen'
   }
 
-  const { products: product, configuration, final_price, base_price_snapshot, currency, discount_percentage } = quote as any
+  const { products: product, configuration, final_price, base_price_snapshot, currency, discount_percentage } = quote as unknown as {
+    products: QuoteDetailProduct | null
+    configuration: QuoteConfigurationItem[] | Record<string, string> | null
+    final_price: number
+    base_price_snapshot: number
+    currency: string
+    discount_percentage: number
+  }
   const variants = product?.product_variants || []
   const discountPct = Number(discount_percentage) || 0
 
@@ -65,6 +78,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ qu
   const companyAddress = settings?.company_address || 'Endüstriyel Üretim Sistemleri'
   const taxRate = settings?.tax_rate || 20
   const footerText = settings?.quote_footer_text || 'Bu teklif belgesi bilgilendirme amaçlıdır.'
+  const discountApprovalThreshold = Number(settings?.discount_approval_threshold ?? 5)
 
   // Yardımcı Formatlayıcılar — tr-TR locale, doğru para sembolü (₺, $, €, £)
   const formatPrice = (amount: number, forceCurrency?: string) => {
@@ -77,7 +91,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ qu
     }).format(amount)
   }
 
-  const formatEffectStr = (effect: any) => {
+  const formatEffectStr = (effect: PriceEffect | undefined) => {
     if (!effect || effect.amount === 0) return ''
     if (effect.type === 'fixed') return effect.amount > 0 ? `+${effect.amount}` : `${effect.amount}`
     if (effect.type === 'multiplier') return `x${effect.amount}`
@@ -117,7 +131,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ qu
     // YENİ FORMAT: Array of objects
     for (const item of configuration) {
       // variant bilgisini product_variants'tan bul
-      const variant = variants.find((v: any) => v.id === item.variant_id)
+      const variant = variants.find((v) => v.id === item.variant_id)
       const groupName = variant?.group_name || item.variant_id || '—'
 
       // option bilgisini bul
@@ -125,7 +139,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ qu
       let effectStr = ''
 
       if (variant && variant.options) {
-        const opt = variant.options.find((o: any) => o.value === item.selected_value)
+        const opt = variant.options.find((o) => o.value === item.selected_value)
         if (opt) {
           optionLabel = opt.label || item.selected_value
           effectStr = formatEffectStr(opt.price_effect)
@@ -137,13 +151,13 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ qu
   } else if (configuration && typeof configuration === 'object') {
     // ESKİ FORMAT: Object { variant_id: option_value }
     for (const [variantId, optionValue] of Object.entries(configuration)) {
-      const variant = variants.find((v: any) => v.id === variantId)
+      const variant = variants.find((v) => v.id === variantId)
       const groupName = variant?.group_name || variantId
       let optionLabel = String(optionValue)
       let effectStr = ''
 
       if (variant && variant.options) {
-        const opt = variant.options.find((o: any) => o.value === optionValue)
+        const opt = variant.options.find((o) => o.value === optionValue)
         if (opt) {
           optionLabel = opt.label || String(optionValue)
           effectStr = formatEffectStr(opt.price_effect)
@@ -154,8 +168,11 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ qu
     }
   }
 
-  // İndirim öncesi fiyat hesapla
-  const priceBeforeDiscount = discountPct > 0 ? final_price / (1 - discountPct / 100) : final_price
+  // İndirim öncesi fiyat hesapla (discountPct === 100 durumunda bölme hatasını önle)
+  const priceBeforeDiscount =
+    discountPct > 0 && discountPct < 100
+      ? final_price / (1 - discountPct / 100)
+      : final_price
   const discountAmount = priceBeforeDiscount - final_price
 
   return (
@@ -173,7 +190,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ qu
       <div className="max-w-5xl mx-auto bg-white border border-slate-200 shadow-lg rounded-xl overflow-hidden print:border-none print:shadow-none print:rounded-none">
         
         {/* Antetli Kısım (Header) */}
-        <div className="p-8 sm:p-12 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="p-5 sm:p-8 lg:p-12 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="flex items-center">
             <div className="bg-brand-600 p-3 rounded-lg mr-4">
               <Hexagon className="h-8 w-8 text-white" />
@@ -195,8 +212,8 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ qu
               <div className="pt-2 flex items-center gap-2 md:justify-end">
                 <Badge variant={stat.variant} className="text-xs px-2 py-0.5">{stat.label}</Badge>
                 {discountPct > 0 && (
-                  <Badge 
-                    variant={discountPct > 5 ? "destructive" : "success"} 
+                  <Badge
+                    variant={discountPct > discountApprovalThreshold ? "destructive" : "success"}
                     className="text-xs px-2 py-0.5"
                   >
                     %{discountPct} İskonto
@@ -209,7 +226,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ qu
 
         {/* İskonto Onay Uyarı Bandı */}
         {quote.status === 'pending_admin_approval' && (
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200 px-8 sm:px-12 py-4">
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200 px-5 sm:px-8 lg:px-12 py-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center shrink-0">
                 <span className="text-amber-600 text-lg font-bold">%</span>
@@ -219,7 +236,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ qu
                   Bu teklif %{discountPct} iskonto içermektedir ve admin onayı beklemektedir.
                 </p>
                 <p className="text-xs text-amber-600 mt-0.5">
-                  İndirim onaylanmadan stok rezerve edilmeyecek ve PDF çıktısı alınamayacaktır.
+                  Stok bu teklif için zaten rezerve edilmiştir; indirim onaylanmadan yalnızca PDF çıktısı alınamayacaktır.
                 </p>
               </div>
             </div>
@@ -227,7 +244,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ qu
         )}
 
         {/* Müşteri ve Ürün Kısa Bilgisi */}
-        <div className="p-8 sm:p-12 border-b border-slate-100 flex flex-col md:flex-row gap-12">
+        <div className="p-5 sm:p-8 lg:p-12 border-b border-slate-100 flex flex-col md:flex-row gap-12">
           <div className="flex-1">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Müşteri Bilgileri</h3>
             <div className="text-slate-900 font-semibold text-lg">{customerCompany}</div>
@@ -243,11 +260,11 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ qu
         </div>
 
         {/* Konfigürasyon Kalemleri (Tablo) */}
-        <div className="p-8 sm:p-12">
+        <div className="p-5 sm:p-8 lg:p-12">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-5">Özelleştirilmiş Konfigürasyon Detayları</h3>
-          
-          <div className="border border-slate-200 rounded-lg overflow-hidden">
-            <table className="w-full text-left border-collapse text-sm">
+
+          <div className="border border-slate-200 rounded-lg overflow-x-auto">
+            <table className="w-full text-left border-collapse text-sm min-w-[480px]">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
                   <th className="px-6 py-3 font-semibold text-slate-600">Parametre / Kategori</th>
@@ -313,7 +330,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ qu
         </div>
 
         {/* Alt Bilgi (Footer) */}
-        <div className="bg-slate-50/50 p-8 sm:p-12 border-t border-slate-100 text-xs text-slate-400 leading-relaxed">
+        <div className="bg-slate-50/50 p-5 sm:p-8 lg:p-12 border-t border-slate-100 text-xs text-slate-400 leading-relaxed">
           <p className="mb-2"><strong className="text-slate-500">Şartlar &amp; Koşullar:</strong> {footerText}</p>
           {settings?.iban && <p className="mb-2"><strong className="text-slate-500">Banka IBAN:</strong> {settings.iban}</p>}
           <p>Yazılım Otomasyonu: ADAPSIS B2B Sistemleri üzerinden üretilmiştir.</p>

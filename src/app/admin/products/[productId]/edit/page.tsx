@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 
 import {
   Card,
@@ -26,6 +27,7 @@ import {
   getProductByIdAction,
   updateProductAction,
 } from "@/actions/product-edit.actions";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type PriceEffectType = "fixed" | "multiplier" | "percentage";
 
@@ -60,8 +62,7 @@ export default function EditProductPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [loadErrorMsg, setLoadErrorMsg] = useState<string | null>(null);
 
   // Product fields
   const [name, setName] = useState("");
@@ -100,7 +101,13 @@ export default function EditProductPage() {
 
         if (p.product_variants && p.product_variants.length > 0) {
           setVariants(
-            p.product_variants.map((v: any) => ({
+            p.product_variants.map((v: {
+              id: string;
+              group_name: string;
+              is_required: boolean;
+              sort_order: number;
+              options: VariantOption[];
+            }) => ({
               id: v.id,
               group_name: v.group_name,
               is_required: v.is_required,
@@ -110,7 +117,7 @@ export default function EditProductPage() {
           );
         }
       } else {
-        setErrorMsg("Ürün bulunamadı veya yetki hatası.");
+        setLoadErrorMsg("Ürün bulunamadı veya yetki hatası.");
       }
 
       setIsLoading(false);
@@ -180,8 +187,6 @@ export default function EditProductPage() {
 
   const handleSave = async () => {
     setIsSubmitting(true);
-    setErrorMsg(null);
-    setSuccessMsg(null);
 
     const result = await updateProductAction(productId, {
       name,
@@ -194,19 +199,50 @@ export default function EditProductPage() {
       variants,
     });
 
-    if (!result.success) {
-      setErrorMsg(result.error || "Güncelleme başarısız oldu.");
-    } else {
-      setSuccessMsg("Ürün başarıyla güncellendi! ✓");
-      setTimeout(() => setSuccessMsg(null), 3000);
-    }
     setIsSubmitting(false);
+
+    if (!result.success) {
+      toast.error("Güncelleme başarısız oldu", {
+        description: result.error || undefined,
+      });
+    } else {
+      toast.success("Ürün güncellendi");
+    }
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
+      <div className="min-h-screen bg-slate-50/50 pb-24">
+        <header className="sticky top-0 z-30 bg-white border-b border-slate-200">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <Skeleton className="h-5 w-48" />
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-9 w-20 rounded-lg" />
+                <Skeleton className="h-9 w-32 rounded-lg" />
+              </div>
+            </div>
+          </div>
+        </header>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <Card className="border-slate-200 shadow-sm">
+            <CardContent className="p-6 space-y-6">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-3 w-28" />
+                  <Skeleton className="h-10 w-full rounded-lg" />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          <Card className="border-slate-200 shadow-sm">
+            <CardContent className="p-6 space-y-4">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-28 w-full rounded-lg" />
+              <Skeleton className="h-9 w-32 rounded-lg" />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -215,23 +251,23 @@ export default function EditProductPage() {
     <div className="min-h-screen bg-slate-50/50 pb-24">
       <header className="sticky top-0 z-30 bg-white border-b border-slate-200">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3 sm:py-0 sm:h-16">
+            <div className="flex items-center space-x-4 min-w-0">
               <Link
                 href="/admin/products"
-                className="p-2 -ml-2 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                className="p-2 -ml-2 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors shrink-0"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Link>
-              <div>
-                <h1 className="text-xl font-semibold text-slate-900">
+              <div className="min-w-0">
+                <h1 className="text-xl font-semibold text-slate-900 truncate">
                   Ürünü Düzenle
                 </h1>
-                <p className="text-xs text-slate-500">{name || "—"}</p>
+                <p className="text-xs text-slate-500 truncate">{name || "—"}</p>
               </div>
             </div>
 
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 shrink-0">
               <Button
                 variant="ghost"
                 onClick={() => router.push("/admin/products")}
@@ -260,14 +296,9 @@ export default function EditProductPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {errorMsg && (
+        {loadErrorMsg && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm font-medium">
-            {errorMsg}
-          </div>
-        )}
-        {successMsg && (
-          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 text-sm font-medium">
-            {successMsg}
+            {loadErrorMsg}
           </div>
         )}
 

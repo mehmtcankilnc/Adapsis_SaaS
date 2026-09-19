@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { getErrorMessage } from "@/lib/utils";
 
 export async function updateGlobalSettingsAction(data: {
   company_name: string;
@@ -10,6 +11,7 @@ export async function updateGlobalSettingsAction(data: {
   tax_rate: number;
   default_margin: number;
   quote_footer_text: string;
+  discount_approval_threshold: number;
 }) {
   try {
     const supabase = await createClient();
@@ -41,6 +43,7 @@ export async function updateGlobalSettingsAction(data: {
           tax_rate: data.tax_rate,
           default_margin: data.default_margin,
           quote_footer_text: data.quote_footer_text,
+          discount_approval_threshold: data.discount_approval_threshold,
           updated_at: new Date().toISOString(),
         })
         .eq("id", existing[0].id);
@@ -54,6 +57,7 @@ export async function updateGlobalSettingsAction(data: {
         tax_rate: data.tax_rate,
         default_margin: data.default_margin,
         quote_footer_text: data.quote_footer_text,
+        discount_approval_threshold: data.discount_approval_threshold,
       });
 
       if (error) throw error;
@@ -62,8 +66,8 @@ export async function updateGlobalSettingsAction(data: {
     revalidatePath("/admin/settings");
     revalidatePath("/sales/quotes");
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Settings Update Failed:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: getErrorMessage(error) };
   }
 }

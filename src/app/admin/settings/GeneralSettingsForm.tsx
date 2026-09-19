@@ -1,16 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
+import { toast } from "sonner";
 import { Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { updateGlobalSettingsAction } from "@/actions/global-settings.actions";
+import type { GlobalSettings } from "@/types/product.types";
 
-export function GeneralSettingsForm({ settings }: { settings: any }) {
+export function GeneralSettingsForm({ settings }: { settings: GlobalSettings | null }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     company_name: settings?.company_name || "",
@@ -19,6 +19,7 @@ export function GeneralSettingsForm({ settings }: { settings: any }) {
     tax_rate: settings?.tax_rate || 20,
     default_margin: settings?.default_margin || 10,
     quote_footer_text: settings?.quote_footer_text || "",
+    discount_approval_threshold: settings?.discount_approval_threshold ?? 5,
   });
 
   const handleChange = (field: string, value: string | number) => {
@@ -27,34 +28,22 @@ export function GeneralSettingsForm({ settings }: { settings: any }) {
 
   const handleSave = async () => {
     setIsSubmitting(true);
-    setSuccessMsg(null);
-    setErrorMsg(null);
 
     const res = await updateGlobalSettingsAction(formData);
 
-    if (res.success) {
-      setSuccessMsg("Sistem ayarları başarıyla güncellendi.");
-      setTimeout(() => setSuccessMsg(null), 3000);
-    } else {
-      setErrorMsg(res.error || "Güncelleme sırasında bir hata oluştu.");
-    }
-    
     setIsSubmitting(false);
+
+    if (res.success) {
+      toast.success("Sistem ayarları güncellendi");
+    } else {
+      toast.error("Güncelleme başarısız", {
+        description: res.error || "Güncelleme sırasında bir hata oluştu.",
+      });
+    }
   };
 
   return (
     <div className="space-y-6">
-      {successMsg && (
-        <div className="p-4 bg-emerald-50 text-emerald-700 text-sm font-medium rounded-lg border border-emerald-200">
-          {successMsg}
-        </div>
-      )}
-      {errorMsg && (
-        <div className="p-4 bg-red-50 text-red-700 text-sm font-medium rounded-lg border border-red-200">
-          {errorMsg}
-        </div>
-      )}
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
           <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2 border-b pb-2">Şirket Bilgileri</h3>
@@ -98,12 +87,25 @@ export function GeneralSettingsForm({ settings }: { settings: any }) {
             </div>
             <div className="space-y-2">
               <Label>Varsayılan Kar Marjı (%)</Label>
-              <Input 
+              <Input
                 type="number"
-                value={formData.default_margin} 
-                onChange={(e) => handleChange("default_margin", Number(e.target.value))} 
+                value={formData.default_margin}
+                onChange={(e) => handleChange("default_margin", Number(e.target.value))}
               />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label>İskonto Onay Eşiği (%)</Label>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              value={formData.discount_approval_threshold}
+              onChange={(e) => handleChange("discount_approval_threshold", Number(e.target.value))}
+            />
+            <p className="text-xs text-slate-500">
+              Bu oranın üzerindeki iskontolar otomatik olarak admin onayına gönderilir.
+            </p>
           </div>
         </div>
       </div>

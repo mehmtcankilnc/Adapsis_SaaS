@@ -30,6 +30,7 @@ import {
   User,
 } from 'lucide-react'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   listUsersAction,
   createUserAction,
@@ -239,12 +240,20 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
               {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-16 text-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-slate-300 mx-auto mb-3" />
-                    <p className="text-sm text-slate-500">Kullanıcılar yükleniyor...</p>
-                  </td>
-                </tr>
+                Array.from({ length: 4 }).map((_, i) => (
+                  <tr key={i}>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="w-9 h-9 rounded-full shrink-0" />
+                        <Skeleton className="h-3.5 w-32" />
+                      </div>
+                    </td>
+                    <td className="px-6 py-4"><Skeleton className="h-3.5 w-40" /></td>
+                    <td className="px-6 py-4 text-center"><Skeleton className="h-5 w-16 rounded-full mx-auto" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-3.5 w-24" /></td>
+                    <td className="px-6 py-4 text-right"><Skeleton className="h-8 w-20 rounded-lg ml-auto" /></td>
+                  </tr>
+                ))
               ) : filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-0 py-0 bg-slate-50/30">
@@ -252,6 +261,15 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                       icon={Users}
                       title={search ? "Sonuç Bulunamadı" : "Henüz Kullanıcı Yok"}
                       description={search ? `"${search}" ile eşleşen bir kullanıcı bulunamadı.` : "Sistemde kayıtlı bir kullanıcı bulunmuyor."}
+                      action={search ? (
+                        <Button variant="outline" onClick={() => setSearch('')}>
+                          Aramayı Temizle
+                        </Button>
+                      ) : (
+                        <Button variant="primary" onClick={() => setShowCreate(true)}>
+                          <UserPlus className="mr-2 h-4 w-4" /> Kullanıcı Oluştur
+                        </Button>
+                      )}
                     />
                   </td>
                 </tr>
