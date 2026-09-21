@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import DashboardClient from './DashboardClient'
-import type { DashboardQuoteRow } from './DashboardClient'
+import type { DashboardActivityRow, DashboardQuoteRow, DashboardTaskRow } from './DashboardClient'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,7 +25,7 @@ export default async function DashboardPage({
   // içinde, seçilen zaman filtresine göre client-side hesaplanır.
   const { data: quotes } = await supabase
     .from('quotes')
-    .select('id, status, created_at, final_price, currency, created_by, products(name)')
+    .select('id, status, created_at, final_price, currency, created_by, customer_id, customers(company_name), products(name)')
     .order('created_at', { ascending: false })
 
   // NOT: Supabase-js, generated Database tipleri olmadan `products(name)` gibi
@@ -57,9 +57,51 @@ export default async function DashboardPage({
     }
   }
 
+  // Aktivite Geçmişi widget'ı — görünürlük RLS ile sınırlı (sales kendi/
+  // atanmamış müşterilerini, admin hepsini görür), ekstra filtre gerekmez.
+  const { data: activitiesData } = await supabase
+    .from('activities')
+    .select('id, type, subject, activity_date, customer_id, customers(company_name)')
+    .order('activity_date', { ascending: false })
+    .limit(8)
+  const recentActivities = (activitiesData || []) as unknown as DashboardActivityRow[]
+
+  // Bugünün Görevleri widget'ı — bugüne kadar (bugün dahil) vadesi gelmiş,
+  // henüz tamamlanmamış görevler. Görünürlük RLS ile sınırlı: sales kendine
+  // atanan/kendi müşterisine ait görevleri, admin hepsini görür.
+  const endOfToday = new Date()
+  endOfToday.setHours(23, 59, 59, 999)
+  const { data: tasksData } = await supabase
+    .from('tasks')
+    .select('id, title, due_date, status, assigned_to, customer_id, customers(company_name)')
+    .eq('status', 'pending')
+    .lte('due_date', endOfToday.toISOString())
+    .order('due_date', { ascending: true })
+    .limit(8)
+  let dueTasks = (tasksData || []) as unknown as DashboardTaskRow[]
+
+  if (dueTasks.length > 0) {
+    const assigneeIds = [...new Set(dueTasks.map((t) => t.assigned_to).filter(Boolean))] as string[]
+    if (assigneeIds.length > 0) {
+      const { data: assigneeProfiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', assigneeIds)
+      const assigneeMap = new Map(
+        (assigneeProfiles || []).map((p) => [p.id, p.full_name || 'Bilinmeyen'])
+      )
+      dueTasks = dueTasks.map((t) => ({
+        ...t,
+        assignee_name: t.assigned_to ? (assigneeMap.get(t.assigned_to) || 'Bilinmeyen') : undefined,
+      }))
+    }
+  }
+
   return (
-    <DashboardClient 
+    <DashboardClient
       rawQuotes={rawQuotes}
+      recentActivities={recentActivities}
+      dueTasks={dueTasks}
       role={role}
       error={errorCode}
     />

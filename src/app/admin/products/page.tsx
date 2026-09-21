@@ -48,7 +48,7 @@ export default async function ProductsPage() {
             <div className="flex gap-2">
               {role !== 'sales' && (
                 <Link href="/admin/products/new">
-                  <Button variant="primary" className="bg-brand-600 hover:bg-brand-700 text-white shadow-sm font-medium">
+                  <Button variant="primary" className="font-medium">
                     <Plus className="mr-2 h-4 w-4" /> Yeni Ürün Ekle
                   </Button>
                 </Link>
@@ -83,7 +83,7 @@ export default async function ProductsPage() {
                         action={
                         role !== 'sales' ? (
                           <Link href="/admin/products/new">
-                            <Button variant="primary" className="mt-2 bg-slate-900 text-white hover:bg-slate-800 shadow-md">
+                            <Button variant="primary" className="mt-2 shadow-md">
                               <Plus className="h-4 w-4 mr-2"/> Ürün Oluştur
                             </Button>
                           </Link>

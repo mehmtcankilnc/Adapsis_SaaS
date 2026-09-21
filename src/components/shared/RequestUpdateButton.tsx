@@ -127,7 +127,6 @@ export function RequestUpdateButton({ requestType, itemId, itemName }: RequestUp
             <Button
               variant="primary"
               size="sm"
-              className="bg-brand-600 hover:bg-brand-700"
               onClick={handleSubmit}
               disabled={isSubmitting || note.trim().length < 5}
             >

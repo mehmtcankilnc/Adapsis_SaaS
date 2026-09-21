@@ -363,7 +363,6 @@ export default function InventoryTableClient({
               </Button>
               <Button
                 variant="primary"
-                className="bg-brand-600 hover:bg-brand-700"
                 onClick={submitEdit}
                 disabled={isEditing}
               >

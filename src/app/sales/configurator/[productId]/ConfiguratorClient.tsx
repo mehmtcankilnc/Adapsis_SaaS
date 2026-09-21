@@ -42,7 +42,7 @@ export default function ConfiguratorClient({
 }: {
   product: Product;
   inventoryList: Pick<InventoryItem, "id" | "item_name" | "stock_level" | "reserved_stock">[];
-  customers: Customer[];
+  customers: Pick<Customer, "id" | "company_name">[];
   discountApprovalThreshold?: number;
 }) {
   const init = useSalesConfiguratorStore((s) => s.initialize);
@@ -550,7 +550,7 @@ export default function ConfiguratorClient({
                     <DialogTrigger asChild>
                       <Button
                         variant="primary"
-                        className="w-full h-12 text-base mt-4 shadow-md bg-brand-600 hover:bg-brand-700"
+                        className="w-full h-12 text-base mt-4 shadow-md"
                       >
                         <ShoppingCart className="mr-2 h-5 w-5" />
                         Teklif Oluştur

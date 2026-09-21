@@ -221,7 +221,7 @@ export function QuotesListClient({
               description={search ? "Aradığınız kriterlere uygun bir teklif bulunamadı." : "Sistemde hiçbir teklif kaydı bulunmuyor. Satış konfigüratörü üzerinden ilk teklifinizi oluşturabilirsiniz."}
               action={
                 <Link href="/sales/new-quote">
-                  <Button variant="primary" className="mt-2 bg-slate-900 border-none text-white hover:bg-slate-800 shadow-md transition-all">
+                  <Button variant="primary" className="mt-2 shadow-md transition-all">
                     Yeni Teklif Oluştur
                   </Button>
                 </Link>

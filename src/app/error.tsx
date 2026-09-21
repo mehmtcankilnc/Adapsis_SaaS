@@ -32,7 +32,7 @@ export default function GlobalError({
         </p>
         
         <div className="flex flex-col gap-3">
-          <Button variant="primary" onClick={() => reset()} className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-white font-medium text-base shadow-md transition-all">
+          <Button variant="primary" onClick={() => reset()} className="w-full h-12 font-medium text-base shadow-md transition-all">
             <RotateCcw className="mr-2 h-5 w-5" /> Sayfayı Yeniden Yükle
           </Button>
           <Button variant="outline" onClick={() => window.location.href = '/sales/dashboard'} className="w-full h-12 font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100">

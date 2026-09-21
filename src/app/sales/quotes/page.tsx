@@ -83,7 +83,7 @@ export default async function QuotesPage() {
             </div>
             
             <Link href="/sales/new-quote">
-              <Button variant="primary" className="bg-brand-600 hover:bg-brand-700 shadow-sm text-white">
+              <Button variant="primary">
                 <Plus className="mr-2 h-4 w-4" /> Yeni Teklif Oluştur
               </Button>
             </Link>

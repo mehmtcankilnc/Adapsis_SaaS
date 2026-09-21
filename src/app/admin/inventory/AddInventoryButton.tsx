@@ -53,7 +53,7 @@ export default function AddInventoryButton() {
   return (
     <Dialog open={open} onOpenChange={handleOpenStatus}>
       <DialogTrigger asChild>
-        <Button variant="primary" className="bg-slate-900 hover:bg-slate-800 text-white shadow-sm transition-all">
+        <Button variant="primary" className="shadow-sm transition-all">
           <Plus className="mr-2 h-4 w-4" /> Yeni Stok Kalemi
         </Button>
       </DialogTrigger>
@@ -107,7 +107,7 @@ export default function AddInventoryButton() {
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)} disabled={isSubmitting}>İptal</Button>
-          <Button variant="primary" className="bg-brand-600 hover:bg-brand-700" onClick={handleSubmit} disabled={isSubmitting}>
+          <Button variant="primary" onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting ? (
               <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Kaydediliyor...</>
             ) : (

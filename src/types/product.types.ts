@@ -65,6 +65,8 @@ export interface CurrentUser {
   role: UserRole;
 }
 
+export type CustomerStatus = 'lead' | 'active' | 'inactive' | 'lost';
+
 export interface Customer extends BaseEntity {
   company_name: string;
   contact_name?: string | null;
@@ -72,6 +74,91 @@ export interface Customer extends BaseEntity {
   phone?: string | null;
   address?: string | null;
   created_by?: string | null;
+  status: CustomerStatus;
+  owner_id?: string | null;
+  industry?: string | null;
+  source?: string | null;
+  tags: string[];
+  notes?: string | null;
+
+  contacts?: Contact[];
+  owner_name?: string;
+}
+
+export interface Contact extends BaseEntity {
+  customer_id: string;
+  full_name: string;
+  title?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  is_primary: boolean;
+  notes?: string | null;
+  created_by?: string | null;
+}
+
+export type ActivityType = 'call' | 'email' | 'meeting' | 'note' | 'other';
+
+export interface Activity extends BaseEntity {
+  customer_id: string;
+  quote_id?: string | null;
+  type: ActivityType;
+  subject: string;
+  notes?: string | null;
+  activity_date: string;
+  created_by?: string | null;
+
+  creator_name?: string;
+}
+
+export type TaskStatus = 'pending' | 'completed' | 'cancelled';
+
+export interface Task extends BaseEntity {
+  customer_id: string;
+  quote_id?: string | null;
+  title: string;
+  description?: string | null;
+  due_date: string;
+  assigned_to?: string | null;
+  status: TaskStatus;
+  completed_at?: string | null;
+  created_by?: string | null;
+
+  assignee_name?: string;
+  customer_company_name?: string;
+}
+
+export type OpportunityStage = 'lead' | 'qualified' | 'proposal' | 'negotiation' | 'won' | 'lost';
+
+export interface Opportunity extends BaseEntity {
+  customer_id: string;
+  quote_id?: string | null;
+  title: string;
+  stage: OpportunityStage;
+  estimated_value?: number | null;
+  currency: string;
+  probability?: number | null;
+  expected_close_date?: string | null;
+  owner_id?: string | null;
+  lost_reason?: string | null;
+  competitor?: string | null;
+  closed_at?: string | null;
+  created_by?: string | null;
+
+  owner_name?: string;
+  customer_company_name?: string;
+}
+
+export interface CustomerDocument {
+  id: string;
+  customer_id: string;
+  file_name: string;
+  storage_path: string;
+  file_size?: number | null;
+  mime_type?: string | null;
+  uploaded_by?: string | null;
+  created_at: string;
+
+  uploader_name?: string;
 }
 
 export interface InventoryItem extends BaseEntity {

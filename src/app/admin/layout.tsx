@@ -1,10 +1,10 @@
-import { TopHeader } from '@/components/layout/TopHeader'
+import { Sidebar } from '@/components/layout/Sidebar'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col min-h-screen">
-      <TopHeader />
-      <div className="flex-1">
+    <div className="flex flex-col lg:flex-row min-h-screen">
+      <Sidebar />
+      <div className="flex-1 min-w-0">
         {children}
       </div>
     </div>

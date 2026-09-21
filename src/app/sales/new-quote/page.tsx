@@ -55,7 +55,7 @@ export default async function NewQuoteSelectPage() {
                 </CardContent>
                 <div className="p-6 pt-0 mt-auto">
                   <Link href={`/sales/configurator/${p.id}`} className="block w-full">
-                    <Button variant="primary" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium">
+                    <Button variant="primary" className="w-full font-medium">
                       Konfigürasyona Başla
                     </Button>
                   </Link>

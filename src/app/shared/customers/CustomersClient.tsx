@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus, Building2, Search, Loader2, Check, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ import { createCustomerAction } from "@/actions/customer.actions";
 import type { Customer } from "@/types/product.types";
 
 export function CustomersClient({ initialCustomers }: { initialCustomers: Customer[] }) {
+  const router = useRouter();
   const [customers, setCustomers] = useState(initialCustomers);
   const [search, setSearch] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -92,7 +94,7 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="primary" className="bg-brand-600 hover:bg-brand-700">
+            <Button variant="primary">
               <Plus className="mr-2 h-4 w-4" /> Yeni Müşteri Ekle
             </Button>
           </DialogTrigger>
@@ -103,7 +105,7 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
                 Müşteri veritabanına yeni bir kayıt ekleyin.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4 px-5 py-4 overflow-y-auto">
               <div className="space-y-2">
                 <Label>Firma Adı <span className="text-red-500">*</span></Label>
                 <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Örn: ABC Lojistik A.Ş." />
@@ -155,7 +157,6 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
               ) : (
                 <Button
                   variant="primary"
-                  className="bg-brand-600 hover:bg-brand-700"
                   onClick={() => setIsDialogOpen(true)}
                 >
                   <Plus className="mr-2 h-4 w-4" /> Yeni Müşteri Ekle
@@ -177,7 +178,11 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
           </TableHeader>
           <TableBody>
             {filteredCustomers.map((customer) => (
-              <TableRow key={customer.id}>
+              <TableRow
+                key={customer.id}
+                onClick={() => router.push(`/shared/customers/${customer.id}`)}
+                className="cursor-pointer"
+              >
                 <TableCell className="font-semibold text-slate-800">
                   <div className="flex items-center">
                     <Building2 className="h-4 w-4 text-slate-400 mr-2 shrink-0" />

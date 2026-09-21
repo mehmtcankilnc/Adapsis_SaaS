@@ -213,7 +213,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
 
         <Button
           variant="primary"
-          className="bg-brand-600 hover:bg-brand-700 text-white shadow-sm shrink-0"
+          className="shrink-0"
           onClick={() => {
             setShowCreate(true)
             setCreateForm({ full_name: '', email: '', password: '', role: 'sales' })
@@ -491,7 +491,6 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
             </Button>
             <Button
               variant="primary"
-              className="bg-brand-600 hover:bg-brand-700"
               onClick={handleCreate}
               disabled={isCreating || !createForm.full_name.trim() || !createForm.email.includes('@') || createForm.password.length < 6}
             >
@@ -573,7 +572,6 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
               </Button>
               <Button
                 variant="primary"
-                className="bg-brand-600 hover:bg-brand-700"
                 onClick={handleEdit}
                 disabled={isEditing || !editForm.full_name.trim()}
               >

@@ -8,6 +8,21 @@
   --color-brand-700: #1d4ed8;
   --color-brand-900: #1e3a8a;
   --color-brand-950: #172554;
+
+  /* Blueprint palette — landing page only */
+  --color-ink-950: #05080f;
+  --color-ink-900: #0a0f1c;
+  --color-ink-800: #101728;
+  --color-ink-700: #182036;
+  --color-ink-600: #232d47;
+  --color-ink-500: #3a4568;
+  --color-line-500: #2dd4bf;
+  --color-line-400: #5eead4;
+  --color-signal-400: #fbbf24;
+  --color-signal-500: #f59e0b;
+  --color-signal-600: #d97706;
+  --font-mono-blueprint: var(--font-blueprint-mono), ui-monospace, monospace;
+  --font-display-blueprint: var(--font-blueprint-display), sans-serif;
 }
 
 @layer base {
@@ -47,5 +62,34 @@
   .animate-shimmer {
     animation: none;
     background: var(--shimmer-base, #e2e8f0);
+  }
+}
+
+/* Blueprint schematic grid — landing page hero/CTA backdrop */
+.blueprint-grid {
+  background-image:
+    linear-gradient(to right, rgba(45, 212, 191, 0.09) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(45, 212, 191, 0.09) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 90%);
+}
+
+/* Hero diagram connectors draw themselves in once, on load */
+@keyframes blueprint-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.draw-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: blueprint-draw 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .draw-line {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }
