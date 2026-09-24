@@ -1,5 +1,6 @@
 'use client'
 import * as React from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
 import { X } from 'lucide-react'
 
@@ -26,11 +27,32 @@ export function DialogTrigger({ children, asChild }: { children: React.ReactNode
   return <div onClick={() => setOpen(true)} className="inline-block cursor-pointer">{children}</div>
 }
 
-export function DialogContent({ children, className }: { children: React.ReactNode, className?: string }) {
+export function DialogContent({ children, className, overlayClassName }: { children: React.ReactNode, className?: string, overlayClassName?: string }) {
   const { open, setOpen } = React.useContext(DialogContext)
-  if (!open) return null
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+
+  // Esc ile kapatma: sadece dialog açıkken dinler, kapanınca listener kaldırılır.
+  React.useEffect(() => {
+    if (!open) return
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false)
+    }
+    window.addEventListener("keydown", handleKeydown)
+    return () => window.removeEventListener("keydown", handleKeydown)
+  }, [open, setOpen])
+
+  // `position: sticky` içeren öğeler bazı tarayıcılarda kendi compositing
+  // katmanına terfi edip z-index sırasını görmezden gelerek `position: fixed`
+  // overlay'lerin ÜSTÜNDE render olabiliyor (bilinen bir tarayıcı tuhaflığı —
+  // örn. sayfadaki sticky "Teklif Özeti" kartı). Dialog'u document.body'ye
+  // portal'layarak tüm ata (ancestor) stacking/containing-block bağlamlarından
+  // tamamen kaçıp bu sorunu ortadan kaldırıyoruz — tüm modal kütüphanelerinin
+  // kullandığı standart yaklaşım. Dialoglar her zaman kapalı başladığından
+  // (open=false), bu satıra sadece client'ta (hydration sonrası) ulaşılır —
+  // `document` her zaman mevcuttur, ayrı bir "mounted" state'ine gerek yok.
+  if (!open || typeof document === "undefined") return null
+
+  return createPortal(
+    <div className={cn("fixed inset-0 z-50 flex items-center justify-center p-4", overlayClassName)}>
       <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setOpen(false)} />
       <div className={cn("relative z-50 w-full sm:max-w-[425px] max-h-[85vh] flex flex-col items-stretch text-left bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200", className)}>
         {/* Close button — sticky, always visible */}
@@ -39,7 +61,8 @@ export function DialogContent({ children, className }: { children: React.ReactNo
         </button>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

@@ -36,9 +36,29 @@ import { createQuoteAction } from "@/actions/quote.actions";
 import { createCustomerAction } from "@/actions/customer.actions";
 import { createTemplateAction, deleteTemplateAction } from "@/actions/quote-template.actions";
 import { configurationToSelections } from "@/lib/quote-config";
-import type { Customer, InventoryItem, PriceEffect, Product, QuoteTemplate } from "@/types/product.types";
+import type { Customer, InventoryItem, PriceEffect, Product, ProductVariant, QuoteTemplate } from "@/types/product.types";
 
-type ConfiguratorTemplate = Pick<QuoteTemplate, "id" | "name" | "configuration" | "created_by">;
+type ConfiguratorTemplate = Pick<QuoteTemplate, "id" | "name" | "configuration" | "created_by" | "creator_name">;
+
+/**
+ * Bir şablonun/kopyalama kaynağının içeriğini "Parametre 1: asd · Renk: Mavi"
+ * şeklinde okunabilir bir özete çevirir — kullanıcı şablonu uygulamadan önce
+ * içinde ne olduğunu görebilsin. Boş/eşleşmeyen varyantlar atlanır.
+ */
+function summarizeConfiguration(
+  configuration: { variant_id: string; selected_value: string }[],
+  variants: Pick<ProductVariant, "id" | "group_name" | "options">[],
+): string {
+  const parts: string[] = [];
+  for (const item of configuration) {
+    const variant = variants.find((v) => v.id === item.variant_id);
+    if (!variant) continue;
+    const option = variant.options?.find((o) => o.value === item.selected_value);
+    if (!option) continue;
+    parts.push(`${variant.group_name}: ${option.label}`);
+  }
+  return parts.join(" · ");
+}
 
 export default function ConfiguratorClient({
   product,
@@ -97,6 +117,10 @@ export default function ConfiguratorClient({
   const [isSaveTemplateOpen, setIsSaveTemplateOpen] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState("");
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  // Bir şablon uygulandığında hangi varyantların değiştiğini kısa süre
+  // görsel olarak vurgulamak için (bkz. handleApplyTemplate) — "uygulandı"
+  // toast'ı tek başına yetersizdi, kullanıcı neyin değiştiğini görsün.
+  const [highlightedVariantIds, setHighlightedVariantIds] = useState<Set<string>>(new Set());
 
   // 1) Sayfa yüklenince Ürün konfigürasyonunu initialize et. "Kopyala"
   // akışından (?fromQuote=) gelindiyse önceki seçimlerle doldur, aksi
@@ -239,6 +263,8 @@ export default function ConfiguratorClient({
 
   // Şablon Uygulama: seçili şablonun konfigürasyonunu store'a yükle.
   // Kopyalama akışıyla aynı store action'ı kullanılır (kod tekrarı yok).
+  // Değişen varyant kartları 1.2s boyunca vurgulanır — "uygulandı" toast'ı
+  // tek başına neyin değiştiğini göstermiyordu.
   const handleApplyTemplate = (templateId: string) => {
     const template = templates.find((t) => t.id === templateId);
     if (!template) return;
@@ -248,6 +274,8 @@ export default function ConfiguratorClient({
       product.product_variants || [],
       configurationToSelections(template.configuration),
     );
+    setHighlightedVariantIds(new Set(template.configuration.map((c) => c.variant_id)));
+    window.setTimeout(() => setHighlightedVariantIds(new Set()), 1200);
     toast.success(`"${template.name}" şablonu uygulandı`);
   };
 
@@ -353,76 +381,112 @@ export default function ConfiguratorClient({
         )}
       </div>
 
-      {/* Şablonlar: sık kullanılan konfigürasyonları kaydet/uygula */}
-      <div className="mb-8 p-4 bg-white border border-slate-200 rounded-xl flex flex-col sm:flex-row sm:items-center gap-3">
-        <span className="text-sm font-semibold text-slate-600 shrink-0">Şablonlar:</span>
-        {templates.length > 0 ? (
-          <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
-            {templates.map((t) => (
-              <div
-                key={t.id}
-                className="flex items-center gap-1 bg-slate-100 hover:bg-slate-200 rounded-lg pl-3 pr-1 py-1 transition-colors"
-              >
-                <button
-                  type="button"
-                  onClick={() => handleApplyTemplate(t.id)}
-                  className="text-sm font-medium text-slate-700"
+      {/* Şablonlar: sık kullanılan konfigürasyonları kaydet/uygula. Her kart
+          içeriğini (hangi seçenekler) önizler — kullanıcı uygulamadan önce
+          neyi seçtiğini görsün. */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-slate-700">Kayıtlı Şablonlar</h3>
+          <Dialog open={isSaveTemplateOpen} onOpenChange={setIsSaveTemplateOpen}>
+            <DialogTrigger asChild>
+              <Button type="button" variant="outline" size="sm">
+                <BookmarkPlus className="mr-2 h-4 w-4" /> Şablon Olarak Kaydet
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[460px] p-6 grid gap-4">
+              <DialogHeader>
+                <DialogTitle>Şablon Olarak Kaydet</DialogTitle>
+                <DialogDescription>
+                  Şu anki seçimleri isimlendirip kaydedin; ekip bu şablonu daha sonra yeni tekliflerde kullanabilir.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4">
+                <div className="flex flex-col gap-2">
+                  <Label>Kaydedilecek Seçimler</Label>
+                  {variants.length > 0 ? (
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-1.5 max-h-40 overflow-y-auto">
+                      {variants.map((v) => {
+                        const opt = v.options?.find((o) => o.value === selections[v.id]);
+                        if (!opt) return null;
+                        return (
+                          <div key={v.id} className="flex justify-between gap-3 text-xs">
+                            <span className="text-slate-500 shrink-0">{v.group_name}</span>
+                            <span className="font-medium text-slate-800 text-right">{opt.label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400">Bu ürünün seçilebilir varyasyonu yok.</p>
+                  )}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label>Şablon Adı</Label>
+                  <Input
+                    value={newTemplateName}
+                    onChange={(e) => setNewTemplateName(e.target.value)}
+                    placeholder="Örn: Standart 3000kVA Paketi"
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setIsSaveTemplateOpen(false)}>
+                  İptal
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={handleSaveTemplate}
+                  disabled={isSavingTemplate || !newTemplateName.trim()}
                 >
-                  {t.name}
-                </button>
-                {(t.created_by === currentUserId) && (
+                  {isSavingTemplate ? "Kaydediliyor..." : "Kaydet"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {templates.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {templates.map((t) => {
+              const summary = summarizeConfiguration(t.configuration, variants);
+              return (
+                <div
+                  key={t.id}
+                  className="group relative rounded-xl border border-slate-200 bg-white hover:border-brand-300 hover:shadow-sm transition-colors"
+                >
                   <button
                     type="button"
-                    onClick={() => handleDeleteTemplate(t.id)}
-                    className="text-slate-400 hover:text-red-600 p-1"
-                    title="Şablonu Sil"
+                    onClick={() => handleApplyTemplate(t.id)}
+                    className="w-full text-left p-4"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <div className="font-semibold text-sm text-slate-800 pr-6 truncate">{t.name}</div>
+                    <p className="mt-1 text-xs text-slate-500 line-clamp-2 min-h-[2rem]">
+                      {summary || "Varsayılan seçimler"}
+                    </p>
+                    {t.creator_name && (
+                      <p className="mt-2 text-[11px] text-slate-400">{t.creator_name} tarafından</p>
+                    )}
                   </button>
-                )}
-              </div>
-            ))}
+                  {t.created_by === currentUserId && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteTemplate(t.id)}
+                      className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity text-slate-400 hover:text-red-600 p-1"
+                      title="Şablonu Sil"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ) : (
-          <span className="text-sm text-slate-400 flex-1">Bu ürün için henüz kayıtlı şablon yok.</span>
+          <div className="p-5 border border-dashed border-slate-200 rounded-xl text-sm text-slate-400 text-center bg-white">
+            Bu ürün için henüz kayıtlı şablon yok. Seçimlerinizi yapıp &quot;Şablon Olarak Kaydet&quot; ile ekibiniz için ilk şablonu oluşturun.
+          </div>
         )}
-        <Dialog open={isSaveTemplateOpen} onOpenChange={setIsSaveTemplateOpen}>
-          <DialogTrigger asChild>
-            <Button type="button" variant="outline" size="sm" className="shrink-0">
-              <BookmarkPlus className="mr-2 h-4 w-4" /> Şablon Olarak Kaydet
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] p-6 grid gap-4">
-            <DialogHeader>
-              <DialogTitle>Şablon Olarak Kaydet</DialogTitle>
-              <DialogDescription>
-                Şu anki seçimleri isimlendirip kaydedin; ekip bu şablonu daha sonra yeni tekliflerde kullanabilir.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="flex flex-col gap-2">
-                <Label>Şablon Adı</Label>
-                <Input
-                  value={newTemplateName}
-                  onChange={(e) => setNewTemplateName(e.target.value)}
-                  placeholder="Örn: Standart 3000kVA Paketi"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setIsSaveTemplateOpen(false)}>
-                İptal
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleSaveTemplate}
-                disabled={isSavingTemplate || !newTemplateName.trim()}
-              >
-                {isSavingTemplate ? "Kaydediliyor..." : "Kaydet"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-10">
@@ -465,6 +529,8 @@ export default function ConfiguratorClient({
                     const isOutOfStock =
                       stockRef && availableStock < (option.required_amount || 1);
 
+                    const isJustApplied = isSelected && highlightedVariantIds.has(variant.id);
+
                     return (
                       <div
                         key={option.value}
@@ -474,6 +540,7 @@ export default function ConfiguratorClient({
                           isSelected
                             ? "border-brand-600 bg-brand-50/50 shadow-sm hover:border-brand-600"
                             : "border-slate-200 bg-white hover:border-brand-300 hover:shadow-sm",
+                          isJustApplied && "ring-2 ring-brand-400 ring-offset-2",
                         )}
                       >
                         <div>

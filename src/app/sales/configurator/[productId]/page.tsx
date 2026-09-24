@@ -76,11 +76,29 @@ export default async function ConfiguratorPage({
   }
 
   // Bu ürüne ait kayıtlı şablonlar — ekip çapında görünür (bkz. migration 030)
-  const { data: templates } = await supabase
+  const { data: templatesRaw } = await supabase
     .from('quote_templates')
     .select('id, name, configuration, created_by')
     .eq('product_id', productId)
     .order('created_at', { ascending: false })
+
+  // Şablon kartlarında "kim tarafından oluşturuldu" bilgisi göstermek için
+  // oluşturan kullanıcıların adlarını topluca çekiyoruz (tek tek sorgu yerine).
+  let templates = templatesRaw || []
+  if (templates.length > 0) {
+    const creatorIds = [...new Set(templates.map((t) => t.created_by).filter(Boolean))] as string[]
+    if (creatorIds.length > 0) {
+      const { data: creatorProfiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', creatorIds)
+      const creatorMap = new Map((creatorProfiles || []).map((p) => [p.id, p.full_name || 'Bilinmeyen']))
+      templates = templates.map((t) => ({
+        ...t,
+        creator_name: t.created_by ? creatorMap.get(t.created_by) : undefined,
+      }))
+    }
+  }
 
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -92,7 +110,7 @@ export default async function ConfiguratorPage({
         customers={customers || []}
         discountApprovalThreshold={discountApprovalThreshold}
         initialSelections={initialSelections}
-        templates={templates || []}
+        templates={templates}
         currentUserId={user?.id || ''}
       />
     </div>

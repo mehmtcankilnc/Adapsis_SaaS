@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import {
-  Hexagon,
   LogOut,
   ShieldCheck,
   User,
@@ -18,7 +17,6 @@ import {
 import { logoutUserAction } from "@/actions/auth.actions";
 import { Button } from "@/components/ui/button";
 import { CurrencySelector } from "./CurrencySelector";
-import { MobileSidebar } from "./MobileSidebar";
 
 const navLinkClass =
   "px-3 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-800 transition-colors flex items-center gap-2 text-sm font-medium";
@@ -86,32 +84,10 @@ export async function Sidebar() {
   const dueTaskCount = dueTaskCountRaw || 0;
 
   return (
-    <>
-      {/* Mobil üst çubuk (lg altı) — sidebar yerine hamburger menü açar */}
-      <div className="lg:hidden sticky top-0 z-50 bg-slate-900 text-slate-100 border-b border-slate-800">
-        <div className="flex items-center justify-between h-14 px-4">
-          <Link href="/sales/dashboard" className="flex items-center gap-2">
-            <Hexagon className="h-6 w-6 text-brand-400" fill="currentColor" fillOpacity={0.2} />
-            <span className="font-bold text-lg tracking-tight">Adapsis</span>
-          </Link>
-          <MobileSidebar
-            isSuperAdmin={isSuperAdmin}
-            unreadQuoteCount={unreadQuoteCount}
-            pendingRequestCount={pendingRequestCount}
-            dueTaskCount={dueTaskCount}
-            userName={name}
-            role={role}
-          />
-        </div>
-      </div>
-
-      {/* Masaüstü sol sidebar */}
-      <nav className="hidden lg:flex lg:flex-col lg:w-60 lg:shrink-0 bg-slate-900 text-slate-100 h-screen sticky top-0">
-        <Link href="/sales/dashboard" className="flex items-center gap-2 px-5 h-14 shrink-0 border-b border-slate-800">
-          <Hexagon className="h-6 w-6 text-brand-400" fill="currentColor" fillOpacity={0.2} />
-          <span className="font-bold text-lg tracking-tight">Adapsis</span>
-        </Link>
-
+    // Masaüstü sol sidebar — logo ve global arama artık TopNavbar'da (bkz.
+    // layout.tsx); bu nav sadece linkler+rozetler içerir, TopNavbar'ın
+    // (h-14) altından başlar.
+    <nav className="hidden lg:flex lg:flex-col lg:w-60 lg:shrink-0 bg-slate-900 text-slate-100 h-[calc(100vh-3.5rem)] sticky top-14">
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
           <Link href="/sales/dashboard" className={`${navLinkClass} relative`}>
             <LayoutDashboard className="w-4 h-4 opacity-70 shrink-0" /> Dashboard
@@ -209,6 +185,5 @@ export async function Sidebar() {
           </form>
         </div>
       </nav>
-    </>
   );
 }
