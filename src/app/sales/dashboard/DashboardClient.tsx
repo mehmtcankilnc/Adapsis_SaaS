@@ -3,13 +3,14 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
-import { BarChart3, TrendingUp, TrendingDown, Minus, CheckCircle2, Circle, Box, FileText, AlertCircle, Trophy, Crown, History, ListTodo, Phone, Mail, CalendarClock, MessageSquare } from 'lucide-react'
+import { BarChart3, TrendingUp, TrendingDown, Minus, CheckCircle2, Circle, Box, FileText, AlertCircle, Trophy, Crown, History, ListTodo, Phone, Mail, CalendarClock, MessageSquare, Target } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useGlobalStore } from '@/store/global-store'
 import { subDays, subMonths, subYears, isAfter } from 'date-fns'
 import { updateTaskAction } from '@/actions/task.actions'
+import { OnboardingChecklist } from '@/components/dashboard/OnboardingChecklist'
 import type { ActivityType, QuoteStatus } from '@/types/product.types'
 
 const ACTIVITY_TYPE_MAP: Record<ActivityType, { label: string; icon: typeof Phone }> = {
@@ -59,6 +60,7 @@ export interface DashboardQuoteRow {
   id: string
   status: QuoteStatus
   created_at: string
+  accepted_at?: string | null
   final_price: number
   currency: string
   created_by?: string | null
@@ -93,18 +95,37 @@ export interface DashboardTaskRow {
   customers?: { company_name: string } | null
 }
 
+export interface RepQuotaRow {
+  id: string
+  full_name: string
+  commissionRate: number
+  targetAmount: number
+  targetCurrency: string
+  acceptedQuotes: { final_price: number; currency: string }[]
+}
+
 export default function DashboardClient({
   rawQuotes,
   recentActivities = [],
   dueTasks = [],
   role,
   error,
+  commissionRate = 0,
+  myTarget = null,
+  repsQuota = [],
+  onboarding,
+  userId = '',
 }: {
   rawQuotes: DashboardQuoteRow[]
   recentActivities?: DashboardActivityRow[]
   dueTasks?: DashboardTaskRow[]
   role: string
   error?: string
+  commissionRate?: number
+  myTarget?: { target_amount: number; target_currency: string } | null
+  repsQuota?: RepQuotaRow[]
+  onboarding?: { productCount: number; customerCount: number; salesUserCount: number }
+  userId?: string
 }) {
   const [tasks, setTasks] = useState(dueTasks)
 
@@ -285,6 +306,63 @@ export default function DashboardClient({
       .slice(0, 5);
   }, [filteredQuotes, role]);
 
+  // Kişisel kota/komisyon ilerlemesi — her zaman içinde bulunulan takvim ayı
+  // baz alınır, üstteki timeFilter'dan (7 gün/1 ay/1 yıl/tümü) bağımsızdır.
+  // Bu yüzden filteredQuotes değil, tüm dönemi kapsayan rawQuotes kullanılır.
+  const myQuotaProgress = useMemo(() => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    let acceptedThisMonth = 0;
+    rawQuotes.forEach((q) => {
+      if (q.status !== 'accepted' || !q.accepted_at) return;
+      if (new Date(q.accepted_at) < monthStart) return;
+      const c = q.currency || 'USD';
+      const rateC = rates[c] || 1;
+      const rateG = rates[globalCurrency] || 1;
+      acceptedThisMonth += (Number(q.final_price) / rateC) * rateG;
+    });
+
+    const targetRaw = myTarget?.target_amount || 0;
+    const targetCurrency = myTarget?.target_currency || 'USD';
+    const rateT = rates[targetCurrency] || 1;
+    const rateG = rates[globalCurrency] || 1;
+    const targetInGlobal = (targetRaw / rateT) * rateG;
+
+    return {
+      acceptedThisMonth,
+      targetInGlobal,
+      remaining: Math.max(targetInGlobal - acceptedThisMonth, 0),
+      pct: targetInGlobal > 0 ? Math.min(Math.round((acceptedThisMonth / targetInGlobal) * 100), 100) : 0,
+      commission: acceptedThisMonth * (commissionRate / 100),
+    };
+  }, [rawQuotes, rates, globalCurrency, myTarget, commissionRate]);
+
+  // Admin: tüm temsilcilerin bu ayki kota gerçekleşmesi (repsQuota, listRepsQuotaAction'dan gelir)
+  const repsQuotaComputed = useMemo(() => {
+    if (role !== 'admin') return [];
+    const rateG = rates[globalCurrency] || 1;
+
+    return repsQuota
+      .map((rep) => {
+        let acceptedThisMonth = 0;
+        rep.acceptedQuotes.forEach((q) => {
+          const c = q.currency || 'USD';
+          const rateC = rates[c] || 1;
+          acceptedThisMonth += (Number(q.final_price) / rateC) * rateG;
+        });
+        const rateT = rates[rep.targetCurrency] || 1;
+        const targetInGlobal = (rep.targetAmount / rateT) * rateG;
+        return {
+          name: rep.full_name,
+          acceptedThisMonth,
+          targetInGlobal,
+          pct: targetInGlobal > 0 ? Math.min(Math.round((acceptedThisMonth / targetInGlobal) * 100), 100) : 0,
+          commission: acceptedThisMonth * (rep.commissionRate / 100),
+        };
+      })
+      .sort((a, b) => b.pct - a.pct);
+  }, [repsQuota, rates, globalCurrency, role]);
+
   const lineData = useMemo(() => {
     const days = timeFilter === '7days' ? 7 : timeFilter === '1month' ? 30 : 365;
     // For 1year, line chart by day is too much, but we'll stick to it or aggregate by month for simplicity.
@@ -422,6 +500,16 @@ export default function DashboardClient({
           )}
         </div>
 
+        {/* İlk Kullanım Onboarding Checklist (yalnızca admin) */}
+        {role === 'admin' && onboarding && (
+          <OnboardingChecklist
+            productCount={onboarding.productCount}
+            customerCount={onboarding.customerCount}
+            salesUserCount={onboarding.salesUserCount}
+            userId={userId}
+          />
+        )}
+
         {/* Uzun Süredir Yanıt Bekleyen Teklifler */}
         {staleQuotes.length > 0 && (
           <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -503,6 +591,53 @@ export default function DashboardClient({
             </CardContent>
           </Card>
         </div>
+
+        {/* Bu Ay Kotam (yalnızca satış temsilcisi) */}
+        {role === 'sales' && (
+          <Card className="border-slate-200 shadow-sm mb-8">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-base font-bold text-slate-800 flex items-center">
+                  <Target className="w-5 h-5 mr-2 text-brand-500" /> Bu Ay Kotam
+                </h3>
+                <span className="text-xs text-slate-500 font-medium">
+                  {new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric' }).format(new Date())}
+                </span>
+              </div>
+
+              <div className="mb-5">
+                <div className="flex justify-between items-baseline mb-1.5">
+                  <span className="text-sm font-semibold text-slate-800">
+                    {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: globalCurrency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(myQuotaProgress.acceptedThisMonth)}
+                    <span className="text-slate-400 font-medium"> / {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: globalCurrency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(myQuotaProgress.targetInGlobal)}</span>
+                  </span>
+                  <span className="text-xs font-bold text-brand-600">%{myQuotaProgress.pct}</span>
+                </div>
+                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-brand-500 rounded-full transition-all"
+                    style={{ width: `${myQuotaProgress.pct}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tahmini Komisyon</div>
+                  <div className="text-lg font-black text-emerald-700">
+                    {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: globalCurrency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(myQuotaProgress.commission)}
+                  </div>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Hedefe Kalan</div>
+                  <div className="text-lg font-black text-slate-900">
+                    {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: globalCurrency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(myQuotaProgress.remaining)}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -748,6 +883,47 @@ export default function DashboardClient({
           </Card>
         )}
         </div>
+
+        {/* Kota Gerçekleşme (yalnızca admin) — her temsilcinin bu ayki hedefe karşı gerçekleşmesi */}
+        {role === 'admin' && repsQuotaComputed.length > 0 && (
+          <div className="mt-6">
+            <Card className="border-slate-200 shadow-sm">
+              <CardContent className="p-6">
+                <h3 className="text-base font-bold text-slate-800 flex items-center mb-5">
+                  <Target className="w-5 h-5 mr-2 text-brand-500" /> Kota Gerçekleşme
+                </h3>
+                <div className="space-y-1">
+                  {repsQuotaComputed.map((rep, i) => (
+                    <div key={rep.name} className="flex items-center gap-4 py-2.5 border-b border-slate-100 last:border-0">
+                      <div className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                        i === 0 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {i + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-baseline mb-1">
+                          <span className="text-sm font-semibold text-slate-800 truncate">{rep.name}</span>
+                          <span className="text-xs text-slate-500 font-medium shrink-0 ml-2">
+                            {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: globalCurrency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(rep.acceptedThisMonth)}
+                            {' / '}
+                            {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: globalCurrency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(rep.targetInGlobal)}
+                            {' · %'}{rep.pct}
+                          </span>
+                        </div>
+                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-brand-500 rounded-full"
+                            style={{ width: `${rep.pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
       </div>
     </div>

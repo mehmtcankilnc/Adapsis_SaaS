@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SelectNative } from "@/components/ui/select-native";
+import { CategorySelectField } from "@/components/shared/CategorySelectField";
 import { getCategoriesAction } from "@/actions/product.actions";
 import {
   getProductByIdAction,
@@ -320,18 +321,12 @@ export default function EditProductPage() {
                   <Label>
                     Ürün Kategorisi <span className="text-red-500">*</span>
                   </Label>
-                  <SelectNative
+                  <CategorySelectField
+                    categories={categories}
                     value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value)}
-                    className="w-full"
-                  >
-                    <option value="">-- Kategori Seçin --</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </SelectNative>
+                    onChange={setCategoryId}
+                    onCategoryCreated={(c) => setCategories((prev) => [...prev, c])}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -341,7 +336,7 @@ export default function EditProductPage() {
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Örn: 3000kVA Dağıtım Trafosu"
+                    placeholder="Örn: Endüstriyel Pompa Seti"
                   />
                 </div>
 
@@ -350,7 +345,7 @@ export default function EditProductPage() {
                   <Input
                     value={sku}
                     onChange={(e) => setSku(e.target.value)}
-                    placeholder="TRF-0001"
+                    placeholder="URN-0001"
                   />
                 </div>
 
@@ -483,7 +478,7 @@ export default function EditProductPage() {
                                     label: e.target.value,
                                   })
                                 }
-                                placeholder="Örn: 50 MVA"
+                                placeholder="Örn: Büyük Boy"
                                 className="h-9 w-full min-w-[120px]"
                               />
                             </td>
@@ -495,7 +490,7 @@ export default function EditProductPage() {
                                     value: e.target.value,
                                   })
                                 }
-                                placeholder="50_mva"
+                                placeholder="buyuk_boy"
                                 className="h-9 w-full min-w-[100px] text-slate-500"
                               />
                             </td>

@@ -37,6 +37,7 @@ import {
   updateUserAction,
   deleteUserAction,
 } from '@/actions/user-management.actions'
+import { upsertRepQuotaAction } from '@/actions/quota.actions'
 
 interface UserRow {
   id: string
@@ -44,6 +45,9 @@ interface UserRow {
   email: string
   role: string
   created_at: string | null
+  commission_rate: number
+  target_amount: number
+  target_currency: string
 }
 
 export function UserManagementClient({ currentUserId }: { currentUserId: string }) {
@@ -61,7 +65,13 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
 
   // ─── Edit Dialog ───
   const [editUser, setEditUser] = useState<UserRow | null>(null)
-  const [editForm, setEditForm] = useState({ full_name: '', role: 'sales' as 'admin' | 'sales' })
+  const [editForm, setEditForm] = useState({
+    full_name: '',
+    role: 'sales' as 'admin' | 'sales',
+    commission_rate: 0,
+    target_amount: 0,
+    target_currency: 'USD',
+  })
   const [isEditing, setIsEditing] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
 
@@ -120,14 +130,24 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
     setIsEditing(true)
     setEditError(null)
 
-    const result = await updateUserAction(editUser.id, editForm)
+    const result = await updateUserAction(editUser.id, { full_name: editForm.full_name, role: editForm.role })
+
+    let quotaResult: { success: boolean; error?: string } = { success: true }
+    if (editForm.role === 'sales') {
+      quotaResult = await upsertRepQuotaAction(editUser.id, {
+        commissionRate: editForm.commission_rate,
+        targetAmount: editForm.target_amount,
+        targetCurrency: editForm.target_currency,
+      })
+    }
+
     setIsEditing(false)
 
-    if (result.success) {
+    if (result.success && quotaResult.success) {
       setEditUser(null)
       fetchUsers()
     } else {
-      setEditError(result.error || 'Güncelleme başarısız.')
+      setEditError(result.error || quotaResult.error || 'Güncelleme başarısız.')
     }
   }
 
@@ -156,7 +176,13 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
 
   const openEditDialog = (user: UserRow) => {
     setEditUser(user)
-    setEditForm({ full_name: user.full_name, role: user.role as 'admin' | 'sales' })
+    setEditForm({
+      full_name: user.full_name,
+      role: user.role as 'admin' | 'sales',
+      commission_rate: user.commission_rate || 0,
+      target_amount: user.target_amount || 0,
+      target_currency: user.target_currency || 'USD',
+    })
     setEditError(null)
   }
 
@@ -235,6 +261,8 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">E-posta</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Rol</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Kayıt Tarihi</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Hedef (Bu Ay)</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Komisyon %</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Eylemler</th>
               </tr>
             </thead>
@@ -251,12 +279,14 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                     <td className="px-6 py-4"><Skeleton className="h-3.5 w-40" /></td>
                     <td className="px-6 py-4 text-center"><Skeleton className="h-5 w-16 rounded-full mx-auto" /></td>
                     <td className="px-6 py-4"><Skeleton className="h-3.5 w-24" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-3.5 w-20" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-3.5 w-12" /></td>
                     <td className="px-6 py-4 text-right"><Skeleton className="h-8 w-20 rounded-lg ml-auto" /></td>
                   </tr>
                 ))
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-0 py-0 bg-slate-50/30">
+                  <td colSpan={7} className="px-0 py-0 bg-slate-50/30">
                     <EmptyState
                       icon={Users}
                       title={search ? "Sonuç Bulunamadı" : "Henüz Kullanıcı Yok"}
@@ -322,6 +352,14 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-500 font-medium">
                         {formatDate(u.created_at)}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-600 font-medium">
+                        {u.role === 'sales'
+                          ? new Intl.NumberFormat('tr-TR', { style: 'currency', currency: u.target_currency || 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(u.target_amount || 0)
+                          : '—'}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-600 font-medium">
+                        {u.role === 'sales' ? `%${u.commission_rate || 0}` : '—'}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -564,6 +602,42 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                   </button>
                 </div>
               </div>
+
+              {editForm.role === 'sales' && (
+                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="edit-target">Bu Ayın Hedefi</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="edit-target"
+                        type="number"
+                        min={0}
+                        value={editForm.target_amount}
+                        onChange={(e) => setEditForm(p => ({ ...p, target_amount: Number(e.target.value) }))}
+                        className="flex-1"
+                      />
+                      <Input
+                        value={editForm.target_currency}
+                        onChange={(e) => setEditForm(p => ({ ...p, target_currency: e.target.value.toUpperCase() }))}
+                        className="w-20"
+                        maxLength={3}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="edit-commission">Komisyon Oranı (%)</Label>
+                    <Input
+                      id="edit-commission"
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.5}
+                      value={editForm.commission_rate}
+                      onChange={(e) => setEditForm(p => ({ ...p, commission_rate: Number(e.target.value) }))}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <DialogFooter>

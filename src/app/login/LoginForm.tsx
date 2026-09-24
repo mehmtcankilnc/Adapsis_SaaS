@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { flushSync } from 'react-dom'
 import { toast } from 'sonner'
 import { loginUserAction } from '@/actions/auth.actions'
 import { Button } from '@/components/ui/button'
@@ -26,10 +27,16 @@ export function LoginForm() {
   return (
     <form 
       action={async (formData) => {
-        setIsPending(true)
+        // Başarılı girişte redirect() sunucu tarafında sert bir sayfa geçişi
+        // tetikliyor — bu geçiş bazen tek bir animasyon karesi bile
+        // geçmeden gerçekleşiyor, yani normal setIsPending(true) DOM'a hiç
+        // commit olmadan sayfa yenilenebiliyor (spinner hiç görünmüyor).
+        // flushSync ile state'i senkron commit ederek en az bir paint şansı
+        // garanti ediyoruz.
+        flushSync(() => setIsPending(true))
         await loginUserAction(formData)
         // Redirect yapacağı için setIsPending(false) çağırmaya gerek yok (form sayfadan ayrılacak)
-      }} 
+      }}
       className="space-y-6"
     >
       {errorMsg && (
@@ -96,7 +103,7 @@ export function LoginForm() {
           type="submit"
           disabled={isPending}
           variant="primary"
-          className="w-full bg-slate-900 hover:bg-slate-800 text-white shadow-md font-medium text-base h-11"
+          className="w-full shadow-md font-medium text-base h-11"
         >
           {isPending ? (
             <>

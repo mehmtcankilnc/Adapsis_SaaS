@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SelectNative } from "@/components/ui/select-native";
+import { CategorySelectField } from "@/components/shared/CategorySelectField";
 import { useProductBuilderStore } from "@/store/product-builder";
 import { createProductAction, getCategoriesAction } from "@/actions/product.actions";
 import { PriceEffectType, StockRecipeItem, InventoryItem } from "@/types/product.types";
@@ -165,17 +166,13 @@ export default function NewProductPage() {
                   <Label>
                     Ürün Kategorisi <span className="text-red-500">*</span>
                   </Label>
-                  <SelectNative
+                  <CategorySelectField
+                    categories={categories}
                     value={store.categoryId}
-                    onChange={(e) => store.setBaseInfo({ categoryId: e.target.value })}
+                    onChange={(id) => store.setBaseInfo({ categoryId: id })}
+                    onCategoryCreated={(c) => setCategories((prev) => [...prev, c])}
                     disabled={isLoadingCategories}
-                    className="w-full"
-                  >
-                    <option value="">-- Kategori Seçin --</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </SelectNative>
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -187,7 +184,7 @@ export default function NewProductPage() {
                     onChange={(e) =>
                       store.setBaseInfo({ name: e.target.value })
                     }
-                    placeholder="Örn: 3000kVA Dağıtım Trafosu"
+                    placeholder="Örn: Endüstriyel Pompa Seti"
                   />
                 </div>
 
@@ -196,7 +193,7 @@ export default function NewProductPage() {
                   <Input
                     value={store.sku}
                     onChange={(e) => store.setBaseInfo({ sku: e.target.value })}
-                    placeholder="TRF-0001"
+                    placeholder="URN-0001"
                   />
                 </div>
 
@@ -331,7 +328,7 @@ export default function NewProductPage() {
                                     label: e.target.value,
                                   })
                                 }
-                                placeholder="Örn: 50 MVA"
+                                placeholder="Örn: Büyük Boy"
                                 className="h-9 w-full min-w-[120px]"
                               />
                             </td>
@@ -343,7 +340,7 @@ export default function NewProductPage() {
                                     value: e.target.value,
                                   })
                                 }
-                                placeholder="50_mva"
+                                placeholder="buyuk_boy"
                                 className="h-9 w-full min-w-[100px] text-slate-500"
                               />
                             </td>

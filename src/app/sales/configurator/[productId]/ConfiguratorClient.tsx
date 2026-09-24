@@ -425,7 +425,7 @@ export default function ConfiguratorClient({
                   <Input
                     value={newTemplateName}
                     onChange={(e) => setNewTemplateName(e.target.value)}
-                    placeholder="Örn: Standart 3000kVA Paketi"
+                    placeholder="Örn: Standart Paket"
                     autoFocus
                   />
                 </div>

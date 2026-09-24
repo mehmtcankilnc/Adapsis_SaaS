@@ -209,9 +209,17 @@ export async function updateQuoteStatusAction(
     // tarafından, bu UPDATE ile aynı transaction içinde atomik olarak
     // yürütülür. Burada tekrar elle stok güncellemesi YAPILMAZ — aksi halde
     // rezervasyon iki kez düşülür (bkz. migration 016 açıklaması).
+    const updatePayload: { status: "accepted" | "rejected"; is_read_by_sales: boolean; accepted_at?: string } = {
+      status,
+      is_read_by_sales: false,
+    };
+    if (status === "accepted") {
+      updatePayload.accepted_at = new Date().toISOString();
+    }
+
     const { error } = await supabase
       .from("quotes")
-      .update({ status, is_read_by_sales: false })
+      .update(updatePayload)
       .eq("id", quoteId);
 
     if (error) throw error;

@@ -1475,7 +1475,7 @@ export function CustomerDetailClient({
               <Input
                 value={opportunityForm.title}
                 onChange={(e) => setOpportunityForm({ ...opportunityForm, title: e.target.value })}
-                placeholder="Örn: Trafo Projesi"
+                placeholder="Örn: Yeni Proje"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">

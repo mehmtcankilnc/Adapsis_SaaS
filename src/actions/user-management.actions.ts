@@ -14,7 +14,7 @@ export async function listUsersAction() {
     // profiles tablosundan tüm kullanıcıları çek
     const { data: profiles, error } = await admin
       .from("profiles")
-      .select("id, full_name, role")
+      .select("id, full_name, role, commission_rate")
       .order("full_name", { ascending: true });
 
     if (error) throw error;
@@ -27,15 +27,28 @@ export async function listUsersAction() {
 
     if (authError) throw authError;
 
-    // İki kaynağı birleştir
+    // Bu ayın kota hedeflerini çek (sadece sales rolündeki kullanıcılar için anlamlı)
+    const now = new Date();
+    const periodMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    const { data: targets } = await admin
+      .from("sales_targets")
+      .select("profile_id, target_amount, target_currency")
+      .eq("period_month", periodMonth);
+    const targetMap = new Map((targets || []).map((t) => [t.profile_id, t]));
+
+    // Kaynakları birleştir
     const merged = (profiles || []).map((p) => {
       const authUser = authUsers?.find((u) => u.id === p.id);
+      const target = targetMap.get(p.id);
       return {
         id: p.id,
         full_name: p.full_name || "İsimsiz",
         email: authUser?.email || "—",
         role: p.role,
         created_at: authUser?.created_at || null,
+        commission_rate: p.commission_rate || 0,
+        target_amount: target?.target_amount || 0,
+        target_currency: target?.target_currency || "USD",
       };
     });
 

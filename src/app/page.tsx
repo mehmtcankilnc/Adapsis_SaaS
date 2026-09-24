@@ -107,11 +107,6 @@ export default function Home() {
 
           <div className="flex items-center gap-2">
             <Link href="/login">
-              <Button variant="ghost" className="text-slate-300 hover:bg-ink-800 hover:text-white">
-                Giriş Yap
-              </Button>
-            </Link>
-            <Link href="/login">
               <Button className="rounded-sm border border-signal-400/40 bg-signal-500 font-medium text-ink-950 hover:bg-signal-400">
                 Sisteme Git
               </Button>

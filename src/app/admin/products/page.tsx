@@ -6,10 +6,29 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { RequestUpdateButton } from '@/components/shared/RequestUpdateButton'
+import { ProductCategoryFilter } from '@/components/shared/ProductCategoryFilter'
 
 export const dynamic = 'force-dynamic'
 
-export default async function ProductsPage() {
+interface ProductRow {
+  id: string
+  name: string
+  sku: string | null
+  base_price: number
+  base_currency: string
+  created_at: string
+  is_active: boolean
+  // products -> categories many-to-one bir ilişki; PostgREST çalışma zamanında
+  // bunu tekil obje döndürür (dizi değil) — bkz. quotes -> products/customers.
+  category: { name: string } | null
+}
+
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>
+}) {
+  const { category: categoryFilter } = await searchParams
   const supabase = await createClient()
 
   // Role kontrolü için profile çekiliyor
@@ -17,10 +36,21 @@ export default async function ProductsPage() {
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
   const role = profile?.role || 'sales'
 
-  const { data: products } = await supabase
+  const { data: categories } = await supabase
+    .from('categories')
+    .select('id, name')
+    .eq('is_active', true)
+    .order('sort_order')
+
+  let productsQuery = supabase
     .from('products')
-    .select('id, name, sku, base_price, base_currency, created_at, is_active')
+    .select('id, name, sku, base_price, base_currency, created_at, is_active, category:categories(name)')
     .order('created_at', { ascending: false })
+  if (categoryFilter) {
+    productsQuery = productsQuery.eq('category_id', categoryFilter)
+  }
+  const { data: productsRaw } = await productsQuery
+  const products = productsRaw as unknown as ProductRow[] | null
 
   const formatPrice = (amount: number, currency: string) => {
     return new Intl.NumberFormat('en-US', {
@@ -59,6 +89,11 @@ export default async function ProductsPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        {categories && categories.length > 0 && (
+          <div className="mb-4 flex justify-end">
+            <ProductCategoryFilter categories={categories} />
+          </div>
+        )}
         <Card className="border-slate-200 shadow-sm overflow-hidden bg-white">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse whitespace-nowrap">
@@ -66,6 +101,7 @@ export default async function ProductsPage() {
                 <tr className="bg-slate-50/80 border-b border-slate-200">
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">SKU</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Açıklama / Ürün Adı</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Kategori</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Taban Fiyat</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Oluşturulma</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Durum</th>
@@ -75,7 +111,7 @@ export default async function ProductsPage() {
               <tbody className="divide-y divide-slate-100">
                 {(!products || products.length === 0) ? (
                   <tr>
-                    <td colSpan={6} className="px-0 py-0 bg-slate-50/30">
+                    <td colSpan={7} className="px-0 py-0 bg-slate-50/30">
                       <EmptyState 
                         icon={PackageOpen} 
                         title="Henüz Ürün Eklenmemiş" 
@@ -97,6 +133,7 @@ export default async function ProductsPage() {
                     <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-6 py-4 text-sm font-mono text-slate-500 font-medium">{p.sku || '-'}</td>
                       <td className="px-6 py-4 text-sm font-bold text-slate-900">{p.name}</td>
+                      <td className="px-6 py-4 text-sm text-slate-500 font-medium">{p.category?.name || '-'}</td>
                       <td className="px-6 py-4 text-sm font-bold text-brand-700 text-right">{formatPrice(p.base_price, p.base_currency)}</td>
                       <td className="px-6 py-4 text-sm font-medium text-slate-500">{formatDate(p.created_at)}</td>
                       <td className="px-6 py-4 text-center">

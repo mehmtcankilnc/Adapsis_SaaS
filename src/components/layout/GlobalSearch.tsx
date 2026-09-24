@@ -6,6 +6,7 @@ import { Search, Users, FileText, Package, Loader2, type LucideIcon } from "luci
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { globalSearchAction, type GlobalSearchResult } from "@/actions/global-search.actions";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 const QUOTE_STATUS_LABELS: Record<string, string> = {
   pending: "Değerlendirmede",
@@ -53,6 +54,7 @@ export function GlobalSearch({
   const [results, setResults] = useState<GlobalSearchResult | null>(null);
   const router = useRouter();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { t } = useLanguage();
 
   // Palet açılırken önceki sorgu/sonuçlar sıfırlanır — eski sonuçlar bir
   // sonraki açılışta sızmasın. Bir effect yerine, paleti her açan yerde
@@ -117,7 +119,7 @@ export function GlobalSearch({
           className="w-full flex items-center gap-2 px-3 py-2 rounded-md bg-slate-800/60 border border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-600 transition-colors text-sm"
         >
           <Search className="w-4 h-4 shrink-0" />
-          <span className="flex-1 text-left">Ara...</span>
+          <span className="flex-1 text-left">{t("common.search")}</span>
           <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 shrink-0">
             Ctrl K
           </kbd>

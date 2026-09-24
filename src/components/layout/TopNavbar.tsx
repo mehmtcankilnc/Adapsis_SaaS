@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Hexagon } from "lucide-react";
 import { GlobalSearch } from "./GlobalSearch";
 import { MobileSidebar } from "./MobileSidebar";
+import { CurrencySelector } from "./CurrencySelector";
+import { LanguageSelector } from "./LanguageSelector";
 
 /**
  * Tam genişlik üst navbar — sidebar'ın da üstünden geçer (bkz. layout.tsx
@@ -91,6 +93,11 @@ export async function TopNavbar() {
           <div className="lg:hidden ml-auto">
             <GlobalSearch variant="icon" registerShortcut={false} isAdmin={isSuperAdmin} />
           </div>
+        </div>
+
+        <div className="hidden lg:flex items-center gap-2 pr-4 shrink-0">
+          <LanguageSelector />
+          <CurrencySelector />
         </div>
 
         <div className="lg:hidden pr-4">

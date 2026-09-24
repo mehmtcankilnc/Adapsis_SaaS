@@ -1,9 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import {
-  LogOut,
   ShieldCheck,
-  User,
   Eye,
   Inbox,
   Settings,
@@ -13,10 +11,10 @@ import {
   FileText,
   Package,
   Boxes,
+  TrendingUp,
 } from "lucide-react";
-import { logoutUserAction } from "@/actions/auth.actions";
-import { Button } from "@/components/ui/button";
-import { CurrencySelector } from "./CurrencySelector";
+import { UserMenu } from "./UserMenu";
+import { T } from "./T";
 
 const navLinkClass =
   "px-3 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-800 transition-colors flex items-center gap-2 text-sm font-medium";
@@ -90,7 +88,7 @@ export async function Sidebar() {
     <nav className="hidden lg:flex lg:flex-col lg:w-60 lg:shrink-0 bg-slate-900 text-slate-100 h-[calc(100vh-3.5rem)] sticky top-14">
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
           <Link href="/sales/dashboard" className={`${navLinkClass} relative`}>
-            <LayoutDashboard className="w-4 h-4 opacity-70 shrink-0" /> Dashboard
+            <LayoutDashboard className="w-4 h-4 opacity-70 shrink-0" /> <T k="nav.dashboard" />
             {dueTaskCount > 0 && (
               <span
                 title="Vadesi gelen/gecikmiş görevler"
@@ -102,10 +100,10 @@ export async function Sidebar() {
           </Link>
 
           <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 px-3 pt-4 pb-1">
-            Satış &amp; CRM
+            <T k="nav.salesCrm" />
           </div>
           <Link href="/sales/quotes" className={`${navLinkClass} relative`}>
-            <FileText className="w-4 h-4 opacity-70 shrink-0" /> Teklifler
+            <FileText className="w-4 h-4 opacity-70 shrink-0" /> <T k="nav.quotes" />
             {unreadQuoteCount > 0 && (
               <span className="absolute top-2 left-6 flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -114,19 +112,19 @@ export async function Sidebar() {
             )}
           </Link>
           <Link href="/shared/customers" className={navLinkClass}>
-            <Users className="w-4 h-4 opacity-70 shrink-0" /> Müşteriler
+            <Users className="w-4 h-4 opacity-70 shrink-0" /> <T k="nav.customers" />
           </Link>
           {!isSuperAdmin && (
             <Link href="/sales/requests" className={navLinkClass}>
-              <ClipboardList className="w-4 h-4 opacity-70 shrink-0" /> Taleplerim
+              <ClipboardList className="w-4 h-4 opacity-70 shrink-0" /> <T k="nav.myRequests" />
             </Link>
           )}
 
           <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 px-3 pt-4 pb-1">
-            Ürün &amp; Stok
+            <T k="nav.productStock" />
           </div>
           <Link href="/admin/products" className={navLinkClass}>
-            <Package className="w-4 h-4 opacity-70 shrink-0" /> Ürün Kataloğu
+            <Package className="w-4 h-4 opacity-70 shrink-0" /> <T k="nav.productCatalog" />
             {!isSuperAdmin && (
               <span title="Sadece Görüntüleme" className="ml-auto">
                 <Eye className="w-4 h-4 text-slate-500 opacity-70" />
@@ -135,7 +133,7 @@ export async function Sidebar() {
           </Link>
           <Link href="/admin/inventory" className={navLinkClass}>
             {isSuperAdmin ? <ShieldCheck className="w-4 h-4 opacity-70 shrink-0" /> : <Boxes className="w-4 h-4 opacity-70 shrink-0" />}
-            Envanter
+            <T k="nav.inventory" />
             {!isSuperAdmin && (
               <span title="Sadece Görüntüleme" className="ml-auto">
                 <Eye className="w-4 h-4 text-slate-500 opacity-70" />
@@ -146,43 +144,28 @@ export async function Sidebar() {
           {isSuperAdmin && (
             <>
               <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 px-3 pt-4 pb-1">
-                Yönetim
+                <T k="nav.management" />
               </div>
               <Link href="/admin/requests" className={navLinkClass}>
-                <Inbox className="w-4 h-4 opacity-70 shrink-0" /> Talepler
+                <Inbox className="w-4 h-4 opacity-70 shrink-0" /> <T k="nav.requests" />
                 {pendingRequestCount > 0 && (
                   <span className="ml-auto flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold leading-none text-white bg-red-500 animate-pulse shrink-0">
                     {pendingRequestCount}
                   </span>
                 )}
               </Link>
+              <Link href="/admin/pipeline" className={navLinkClass}>
+                <TrendingUp className="w-4 h-4 opacity-70 shrink-0" /> <T k="nav.pipeline" />
+              </Link>
               <Link href="/admin/settings" className={navLinkClass}>
-                <Settings className="w-4 h-4 opacity-70 shrink-0" /> Ayarlar
+                <Settings className="w-4 h-4 opacity-70 shrink-0" /> <T k="nav.settings" />
               </Link>
             </>
           )}
         </div>
 
-        <div className="shrink-0 border-t border-slate-800 p-3 space-y-3">
-          <CurrencySelector />
-          <div className="flex items-center gap-2 text-sm px-1">
-            <div className="bg-slate-800 rounded-full p-1.5 border border-slate-700 shrink-0">
-              <User className="h-4 w-4 text-slate-400" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="font-semibold text-slate-200 leading-none truncate">{name}</span>
-              <span className="text-[10px] text-brand-400 mt-0.5 uppercase tracking-wider font-bold">{role}</span>
-            </div>
-          </div>
-          <form action={logoutUserAction}>
-            <Button
-              type="submit"
-              variant="ghost"
-              className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-800 h-9 px-3"
-            >
-              <LogOut className="h-4 w-4 mr-2" /> Çıkış Yap
-            </Button>
-          </form>
+        <div className="shrink-0 border-t border-slate-800 p-3">
+          <UserMenu name={name} role={role} />
         </div>
       </nav>
   );

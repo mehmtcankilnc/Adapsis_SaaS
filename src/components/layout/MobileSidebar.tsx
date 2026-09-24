@@ -16,12 +16,10 @@ import {
   FileText,
   Package,
   Boxes,
-  User,
-  LogOut,
 } from "lucide-react";
-import { logoutUserAction } from "@/actions/auth.actions";
-import { Button } from "@/components/ui/button";
 import { CurrencySelector } from "./CurrencySelector";
+import { UserMenu } from "./UserMenu";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export function MobileSidebar({
   isSuperAdmin,
@@ -41,6 +39,7 @@ export function MobileSidebar({
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const close = () => setOpen(false);
+  const { t } = useLanguage();
 
   const linkClass = (active: boolean) =>
     `px-3 py-2.5 rounded-md flex items-center gap-2.5 transition-colors text-sm font-medium ${
@@ -54,7 +53,7 @@ export function MobileSidebar({
       <button
         onClick={() => setOpen(true)}
         className="p-2 -mr-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
-        aria-label="Menüyü aç"
+        aria-label={t("common.openMenu")}
       >
         <Menu className="h-5 w-5" />
       </button>
@@ -68,7 +67,7 @@ export function MobileSidebar({
               <button
                 onClick={close}
                 className="p-2 -mr-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
-                aria-label="Menüyü kapat"
+                aria-label={t("common.closeMenu")}
               >
                 <X className="h-5 w-5" />
               </button>
@@ -81,7 +80,7 @@ export function MobileSidebar({
                 className={`${linkClass(pathname === "/sales/dashboard")} justify-between`}
               >
                 <span className="flex items-center gap-2.5">
-                  <LayoutDashboard className="w-4 h-4 opacity-70 shrink-0" /> Dashboard
+                  <LayoutDashboard className="w-4 h-4 opacity-70 shrink-0" /> {t("nav.dashboard")}
                 </span>
                 {dueTaskCount > 0 && (
                   <span className="flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold leading-none text-white bg-red-500 shrink-0">
@@ -91,7 +90,7 @@ export function MobileSidebar({
               </Link>
 
               <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 px-3 pt-4 pb-1">
-                Satış &amp; CRM
+                {t("nav.salesCrm")}
               </div>
               <Link
                 href="/sales/quotes"
@@ -99,21 +98,21 @@ export function MobileSidebar({
                 className={`${linkClass(pathname.startsWith("/sales/quotes"))} justify-between`}
               >
                 <span className="flex items-center gap-2.5">
-                  <FileText className="w-4 h-4 opacity-70 shrink-0" /> Teklifler
+                  <FileText className="w-4 h-4 opacity-70 shrink-0" /> {t("nav.quotes")}
                 </span>
                 {unreadQuoteCount > 0 && <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />}
               </Link>
               <Link href="/shared/customers" onClick={close} className={linkClass(pathname.startsWith("/shared/customers"))}>
-                <Users className="w-4 h-4 opacity-70 shrink-0" /> Müşteriler
+                <Users className="w-4 h-4 opacity-70 shrink-0" /> {t("nav.customers")}
               </Link>
               {!isSuperAdmin && (
                 <Link href="/sales/requests" onClick={close} className={linkClass(pathname.startsWith("/sales/requests"))}>
-                  <ClipboardList className="w-4 h-4 opacity-70 shrink-0" /> Taleplerim
+                  <ClipboardList className="w-4 h-4 opacity-70 shrink-0" /> {t("nav.myRequests")}
                 </Link>
               )}
 
               <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 px-3 pt-4 pb-1">
-                Ürün &amp; Stok
+                {t("nav.productStock")}
               </div>
               <Link
                 href="/admin/products"
@@ -121,7 +120,7 @@ export function MobileSidebar({
                 className={`${linkClass(pathname.startsWith("/admin/products"))} justify-between`}
               >
                 <span className="flex items-center gap-2.5">
-                  <Package className="w-4 h-4 opacity-70 shrink-0" /> Ürün Kataloğu
+                  <Package className="w-4 h-4 opacity-70 shrink-0" /> {t("nav.productCatalog")}
                 </span>
                 {!isSuperAdmin && <Eye className="w-4 h-4 text-slate-500 opacity-70 shrink-0" />}
               </Link>
@@ -132,7 +131,7 @@ export function MobileSidebar({
               >
                 <span className="flex items-center gap-2.5">
                   {isSuperAdmin ? <ShieldCheck className="w-4 h-4 opacity-70 shrink-0" /> : <Boxes className="w-4 h-4 opacity-70 shrink-0" />}
-                  Envanter
+                  {t("nav.inventory")}
                 </span>
                 {!isSuperAdmin && <Eye className="w-4 h-4 text-slate-500 opacity-70 shrink-0" />}
               </Link>
@@ -140,7 +139,7 @@ export function MobileSidebar({
               {isSuperAdmin && (
                 <>
                   <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 px-3 pt-4 pb-1">
-                    Yönetim
+                    {t("nav.management")}
                   </div>
                   <Link
                     href="/admin/requests"
@@ -148,7 +147,7 @@ export function MobileSidebar({
                     className={`${linkClass(pathname.startsWith("/admin/requests"))} justify-between`}
                   >
                     <span className="flex items-center gap-2.5">
-                      <Inbox className="w-4 h-4 opacity-70 shrink-0" /> Talepler
+                      <Inbox className="w-4 h-4 opacity-70 shrink-0" /> {t("nav.requests")}
                     </span>
                     {pendingRequestCount > 0 && (
                       <span className="flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold leading-none text-white bg-red-500 shrink-0">
@@ -157,7 +156,7 @@ export function MobileSidebar({
                     )}
                   </Link>
                   <Link href="/admin/settings" onClick={close} className={linkClass(pathname.startsWith("/admin/settings"))}>
-                    <Settings className="w-4 h-4 opacity-70 shrink-0" /> Ayarlar
+                    <Settings className="w-4 h-4 opacity-70 shrink-0" /> {t("nav.settings")}
                   </Link>
                 </>
               )}
@@ -165,24 +164,7 @@ export function MobileSidebar({
 
             <div className="shrink-0 border-t border-slate-800 p-3 space-y-3">
               <CurrencySelector />
-              <div className="flex items-center gap-2 text-sm px-1">
-                <div className="bg-slate-800 rounded-full p-1.5 border border-slate-700 shrink-0">
-                  <User className="h-4 w-4 text-slate-400" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="font-semibold text-slate-200 leading-none truncate">{userName}</span>
-                  <span className="text-[10px] text-brand-400 mt-0.5 uppercase tracking-wider font-bold">{role}</span>
-                </div>
-              </div>
-              <form action={logoutUserAction}>
-                <Button
-                  type="submit"
-                  variant="ghost"
-                  className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-800 h-9 px-3"
-                >
-                  <LogOut className="h-4 w-4 mr-2" /> Çıkış Yap
-                </Button>
-              </form>
+              <UserMenu name={userName} role={role} />
             </div>
           </div>
         </>
