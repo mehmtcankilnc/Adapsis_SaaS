@@ -12,6 +12,8 @@ import {
   Percent,
   AlertTriangle,
   Plus,
+  BookmarkPlus,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,20 +34,31 @@ import {
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { createQuoteAction } from "@/actions/quote.actions";
 import { createCustomerAction } from "@/actions/customer.actions";
-import type { Customer, InventoryItem, PriceEffect, Product } from "@/types/product.types";
+import { createTemplateAction, deleteTemplateAction } from "@/actions/quote-template.actions";
+import { configurationToSelections } from "@/lib/quote-config";
+import type { Customer, InventoryItem, PriceEffect, Product, QuoteTemplate } from "@/types/product.types";
+
+type ConfiguratorTemplate = Pick<QuoteTemplate, "id" | "name" | "configuration" | "created_by">;
 
 export default function ConfiguratorClient({
   product,
   inventoryList,
   customers: initialCustomers,
   discountApprovalThreshold = 5,
+  initialSelections,
+  templates: initialTemplates,
+  currentUserId,
 }: {
   product: Product;
   inventoryList: Pick<InventoryItem, "id" | "item_name" | "stock_level" | "reserved_stock">[];
   customers: Pick<Customer, "id" | "company_name">[];
   discountApprovalThreshold?: number;
+  initialSelections?: Record<string, string>;
+  templates?: ConfiguratorTemplate[];
+  currentUserId?: string;
 }) {
   const init = useSalesConfiguratorStore((s) => s.initialize);
+  const initWithPriorSelections = useSalesConfiguratorStore((s) => s.initializeWithPriorSelections);
   const variants = useSalesConfiguratorStore((s) => s.variants);
   const selections = useSalesConfiguratorStore((s) => s.selections);
   const setSelection = useSalesConfiguratorStore((s) => s.setSelection);
@@ -79,14 +92,31 @@ export default function ConfiguratorClient({
   // İskonto State
   const [discountPct, setDiscountPct] = useState<number>(0);
 
-  // 1) Sayfa yüklenince Ürün konfigürasyonunu initialize et
+  // Şablonlar
+  const [templates, setTemplates] = useState<ConfiguratorTemplate[]>(initialTemplates || []);
+  const [isSaveTemplateOpen, setIsSaveTemplateOpen] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState("");
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+
+  // 1) Sayfa yüklenince Ürün konfigürasyonunu initialize et. "Kopyala"
+  // akışından (?fromQuote=) gelindiyse önceki seçimlerle doldur, aksi
+  // halde varsayılan/ilk-seçenek mantığıyla boş başlat.
   useEffect(() => {
-    init(
-      Number(product.base_price),
-      product.base_currency,
-      product.product_variants || [],
-    );
-  }, [product, init]);
+    if (initialSelections) {
+      initWithPriorSelections(
+        Number(product.base_price),
+        product.base_currency,
+        product.product_variants || [],
+        initialSelections,
+      );
+    } else {
+      init(
+        Number(product.base_price),
+        product.base_currency,
+        product.product_variants || [],
+      );
+    }
+  }, [product, init, initWithPriorSelections, initialSelections]);
 
   // 2) Kurları çek ve Store'a yaz
   useEffect(() => {
@@ -207,6 +237,52 @@ export default function ConfiguratorClient({
     setIsAddingCustomer(false);
   };
 
+  // Şablon Uygulama: seçili şablonun konfigürasyonunu store'a yükle.
+  // Kopyalama akışıyla aynı store action'ı kullanılır (kod tekrarı yok).
+  const handleApplyTemplate = (templateId: string) => {
+    const template = templates.find((t) => t.id === templateId);
+    if (!template) return;
+    initWithPriorSelections(
+      Number(product.base_price),
+      product.base_currency,
+      product.product_variants || [],
+      configurationToSelections(template.configuration),
+    );
+    toast.success(`"${template.name}" şablonu uygulandı`);
+  };
+
+  // Şablon Olarak Kaydetme
+  const handleSaveTemplate = async () => {
+    if (!newTemplateName.trim()) return;
+    setIsSavingTemplate(true);
+    const res = await createTemplateAction({
+      product_id: product.id,
+      name: newTemplateName,
+      configuration: selections,
+      variants: product.product_variants || [],
+    });
+    setIsSavingTemplate(false);
+    if (res.success && res.template) {
+      setTemplates([res.template, ...templates]);
+      toast.success("Şablon kaydedildi");
+      setIsSaveTemplateOpen(false);
+      setNewTemplateName("");
+    } else {
+      toast.error("Şablon kaydedilemedi", { description: res.error });
+    }
+  };
+
+  // Şablon Silme
+  const handleDeleteTemplate = async (templateId: string) => {
+    const res = await deleteTemplateAction(templateId);
+    if (res.success) {
+      setTemplates(templates.filter((t) => t.id !== templateId));
+      toast.success("Şablon silindi");
+    } else {
+      toast.error("Şablon silinemedi", { description: res.error });
+    }
+  };
+
   // Teklif Kaydetme İşlemi
   const handleCreateQuote = async () => {
     setIsSubmittingQuote(true);
@@ -275,6 +351,78 @@ export default function ConfiguratorClient({
             oluşturulamaz.
           </div>
         )}
+      </div>
+
+      {/* Şablonlar: sık kullanılan konfigürasyonları kaydet/uygula */}
+      <div className="mb-8 p-4 bg-white border border-slate-200 rounded-xl flex flex-col sm:flex-row sm:items-center gap-3">
+        <span className="text-sm font-semibold text-slate-600 shrink-0">Şablonlar:</span>
+        {templates.length > 0 ? (
+          <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
+            {templates.map((t) => (
+              <div
+                key={t.id}
+                className="flex items-center gap-1 bg-slate-100 hover:bg-slate-200 rounded-lg pl-3 pr-1 py-1 transition-colors"
+              >
+                <button
+                  type="button"
+                  onClick={() => handleApplyTemplate(t.id)}
+                  className="text-sm font-medium text-slate-700"
+                >
+                  {t.name}
+                </button>
+                {(t.created_by === currentUserId) && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteTemplate(t.id)}
+                    className="text-slate-400 hover:text-red-600 p-1"
+                    title="Şablonu Sil"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <span className="text-sm text-slate-400 flex-1">Bu ürün için henüz kayıtlı şablon yok.</span>
+        )}
+        <Dialog open={isSaveTemplateOpen} onOpenChange={setIsSaveTemplateOpen}>
+          <DialogTrigger asChild>
+            <Button type="button" variant="outline" size="sm" className="shrink-0">
+              <BookmarkPlus className="mr-2 h-4 w-4" /> Şablon Olarak Kaydet
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px] p-6 grid gap-4">
+            <DialogHeader>
+              <DialogTitle>Şablon Olarak Kaydet</DialogTitle>
+              <DialogDescription>
+                Şu anki seçimleri isimlendirip kaydedin; ekip bu şablonu daha sonra yeni tekliflerde kullanabilir.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="flex flex-col gap-2">
+                <Label>Şablon Adı</Label>
+                <Input
+                  value={newTemplateName}
+                  onChange={(e) => setNewTemplateName(e.target.value)}
+                  placeholder="Örn: Standart 3000kVA Paketi"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setIsSaveTemplateOpen(false)}>
+                İptal
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleSaveTemplate}
+                disabled={isSavingTemplate || !newTemplateName.trim()}
+              >
+                {isSavingTemplate ? "Kaydediliyor..." : "Kaydet"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-10">

@@ -3,20 +3,22 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Printer, Check, X, Loader2, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { Printer, Check, X, Loader2, ShieldAlert, ShieldCheck, Copy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { updateQuoteStatusAction, approveDiscountAction } from '@/actions/quote.actions'
 
-export default function QuoteActions({ 
-  quoteId, 
-  status, 
+export default function QuoteActions({
+  quoteId,
+  status,
   role,
-  discountPercentage 
-}: { 
-  quoteId: string, 
-  status: string, 
+  discountPercentage,
+  productId,
+}: {
+  quoteId: string,
+  status: string,
   role: string,
-  discountPercentage: number
+  discountPercentage: number,
+  productId: string,
 }) {
   const router = useRouter()
   const [isUpdating, setIsUpdating] = useState(false)
@@ -53,12 +55,23 @@ export default function QuoteActions({
   return (
     <div className="flex gap-3 print:hidden flex-wrap">
       {/* Yazdır butonu */}
-      <Button 
-        variant="outline" 
+      <Button
+        variant="outline"
         onClick={() => canPrint ? window.print() : toast.warning('İskonto onayı bekleyen teklifler için PDF çıktısı alınamaz.')}
         className={`bg-white border-slate-300 text-slate-700 ${!canPrint ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <Printer className="mr-2 h-4 w-4" /> Yazdır / PDF
+      </Button>
+
+      {/* Kopyala: aynı ürünün konfigüratörünü bu teklifin seçimleriyle önceden
+          doldurulmuş açar. Durumdan bağımsız her zaman görünür — reddedilen
+          bir teklifi yeniden teklif etmek için başlangıç noktası olabilir. */}
+      <Button
+        variant="outline"
+        onClick={() => router.push(`/sales/configurator/${productId}?fromQuote=${quoteId}`)}
+        className="bg-white border-slate-300 text-slate-700"
+      >
+        <Copy className="mr-2 h-4 w-4" /> Kopyala
       </Button>
 
       {/* Admin: İskonto Onay/Red Butonları */}

@@ -6,51 +6,11 @@ import { redirect } from "next/navigation";
 import { getErrorMessage } from "@/lib/utils";
 import type { ProductVariant, QuoteConfigurationItem, QuoteStatus } from "@/types/product.types";
 import { ensureQuoteFollowUpTask } from "@/actions/quote-followup.actions";
+import { normalizeConfigurationToArray } from "@/lib/quote-config";
 
 interface StockCheckItem {
   inventory_id: string;
   required_amount: number;
-}
-
-/**
- * Teklif konfigürasyonunu Postgres JSONB-uyumlu array formatına dönüştürür.
- * Store'dan gelen `selections` bir obje (Record<variant_id, option_value>).
- * Postgres trigger'ı JSONB array bekler; obje gönderilirse "cannot extract elements from an object" hatası oluşur.
- */
-function normalizeConfigurationToArray(
-  selections: Record<string, string>,
-  variants?: Pick<ProductVariant, "id" | "options">[],
-): QuoteConfigurationItem[] {
-  // selections objesini array'e çevir
-  const configArray: QuoteConfigurationItem[] = [];
-
-  for (const [variantId, optionValue] of Object.entries(selections)) {
-    const entry: QuoteConfigurationItem = {
-      variant_id: variantId,
-      selected_value: optionValue,
-    };
-
-    // Eğer variant bilgisi varsa, stok bilgilerini de ekle
-    if (variants && Array.isArray(variants)) {
-      const variant = variants.find((v) => v.id === variantId);
-      if (variant && variant.options) {
-        const selectedOption = variant.options.find(
-          (o) => o.value === optionValue,
-        );
-        if (selectedOption) {
-          entry.label = selectedOption.label;
-          if (selectedOption.inventory_item_id) {
-            entry.inventory_id = selectedOption.inventory_item_id;
-            entry.required_amount = selectedOption.required_amount || 1;
-          }
-        }
-      }
-    }
-
-    configArray.push(entry);
-  }
-
-  return configArray;
 }
 
 export async function createQuoteAction(data: {

@@ -183,7 +183,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ qu
         <Link href="/sales/quotes" className="flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">
           <ArrowLeft className="mr-2 h-4 w-4" /> Tekliflere Dön
         </Link>
-        <QuoteActions quoteId={quote.id} status={quote.status} role={role} discountPercentage={discountPct} />
+        <QuoteActions quoteId={quote.id} status={quote.status} role={role} discountPercentage={discountPct} productId={quote.product_id} />
       </div>
 
       {/* A4 Kağıdı Görünümlü Kart */}

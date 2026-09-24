@@ -199,6 +199,14 @@ export interface Quote extends BaseEntity {
   creator_name?: string;
 }
 
+export interface QuoteTemplate extends BaseEntity {
+  product_id: string;
+  name: string;
+  configuration: QuoteConfigurationItem[];
+  created_by?: string | null;
+  creator_name?: string;
+}
+
 export type SystemRequestType = 'product' | 'inventory';
 export type SystemRequestStatus = 'pending' | 'approved' | 'rejected';
 

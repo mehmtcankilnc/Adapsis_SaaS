@@ -24,6 +24,12 @@ export interface SalesConfiguratorState {
   selectedCustomerId: string | null
   
   initialize: (basePrice: number, baseCurrency: string, variants: ProductVariant[]) => void
+  initializeWithPriorSelections: (
+    basePrice: number,
+    baseCurrency: string,
+    variants: ProductVariant[],
+    priorSelections: Record<string, string>,
+  ) => void
   setSelection: (variantId: string, optionValue: string) => void
   setSelectedCustomer: (customerId: string | null) => void
   setActiveCurrency: (currency: string) => void
@@ -57,6 +63,35 @@ export const useSalesConfiguratorStore = create<SalesConfiguratorState>((set, ge
     })
 
     set({ basePrice, baseCurrency, activeCurrency: baseCurrency, variants, selections: defaultSelections })
+  },
+
+  // Teklif kopyalama / şablon uygulama: her variant için önceki seçim hâlâ
+  // geçerli bir opsiyonsa onu kullan, değilse (ürün varyantları o teklif
+  // oluşturulduktan sonra değişmiş olabilir) initialize()'daki varsayılan/
+  // ilk-seçenek mantığına düş.
+  initializeWithPriorSelections: (basePrice, baseCurrency, variants, priorSelections) => {
+    const seededSelections: Record<string, string> = {}
+
+    variants.forEach(v => {
+      const priorValue = priorSelections[v.id]
+      const isPriorStillValid = priorValue && v.options?.some(o => o.value === priorValue)
+
+      if (isPriorStillValid) {
+        seededSelections[v.id] = priorValue
+        return
+      }
+
+      const defaultOpt = v.options?.find(o => o.is_default)
+      if (defaultOpt) {
+        seededSelections[v.id] = defaultOpt.value
+      } else if (v.options && v.options.length > 0) {
+        if (v.is_required) {
+          seededSelections[v.id] = v.options[0].value
+        }
+      }
+    })
+
+    set({ basePrice, baseCurrency, activeCurrency: baseCurrency, variants, selections: seededSelections })
   },
 
   setActiveCurrency: (currency) => set({ activeCurrency: currency }),

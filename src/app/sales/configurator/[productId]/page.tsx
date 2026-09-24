@@ -1,10 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import ConfiguratorClient from './ConfiguratorClient'
+import { configurationToSelections } from '@/lib/quote-config'
 
-export default async function ConfiguratorPage({ params }: { params: Promise<{ productId: string }> }) {
+export default async function ConfiguratorPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ productId: string }>
+  searchParams: Promise<{ fromQuote?: string }>
+}) {
   const resolvedParams = await params
   const productId = resolvedParams.productId
+  const { fromQuote } = await searchParams
 
   const supabase = await createClient()
 
@@ -50,6 +58,32 @@ export default async function ConfiguratorPage({ params }: { params: Promise<{ p
     .maybeSingle()
   const discountApprovalThreshold = Number(settings?.discount_approval_threshold ?? 5)
 
+  // "Kopyala" akışı: ?fromQuote=<quoteId> ile gelindiyse o teklifin
+  // konfigürasyonunu çek ve önceden doldurulmuş seçim olarak geçir. Farklı
+  // bir ürüne ait bir teklifse (URL elle değiştirilmişse) sessizce yoksay —
+  // farklı ürünün varyant id'leri bu ürünle karışmasın.
+  let initialSelections: Record<string, string> | undefined
+  if (fromQuote) {
+    const { data: sourceQuote } = await supabase
+      .from('quotes')
+      .select('product_id, configuration')
+      .eq('id', fromQuote)
+      .maybeSingle()
+
+    if (sourceQuote && sourceQuote.product_id === productId) {
+      initialSelections = configurationToSelections(sourceQuote.configuration)
+    }
+  }
+
+  // Bu ürüne ait kayıtlı şablonlar — ekip çapında görünür (bkz. migration 030)
+  const { data: templates } = await supabase
+    .from('quote_templates')
+    .select('id, name, configuration, created_by')
+    .eq('product_id', productId)
+    .order('created_at', { ascending: false })
+
+  const { data: { user } } = await supabase.auth.getUser()
+
   return (
     <div className="min-h-screen bg-slate-50">
       <ConfiguratorClient
@@ -57,8 +91,10 @@ export default async function ConfiguratorPage({ params }: { params: Promise<{ p
         inventoryList={inventoryList || []}
         customers={customers || []}
         discountApprovalThreshold={discountApprovalThreshold}
+        initialSelections={initialSelections}
+        templates={templates || []}
+        currentUserId={user?.id || ''}
       />
     </div>
   )
 }
-
