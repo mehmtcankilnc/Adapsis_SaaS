@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getErrorMessage } from "@/lib/utils";
 import type { ProductVariant, QuoteConfigurationItem, QuoteStatus } from "@/types/product.types";
+import { ensureQuoteFollowUpTask } from "@/actions/quote-followup.actions";
 
 interface StockCheckItem {
   inventory_id: string;
@@ -168,27 +169,43 @@ export async function createQuoteAction(data: {
       quoteStatus = "pending_admin_approval";
     }
 
-    const { error } = await supabase.from("quotes").insert({
-      product_id: data.product_id,
-      customer_id: data.customer_id,
-      customer_company: customerCompanyFallback,
-      customer_contact: data.customer_contact || null,
-      configuration: configArray,
-      base_price_snapshot: data.base_price_snapshot,
-      final_price: discountedPrice,
-      currency: data.currency,
-      status: quoteStatus,
-      discount_percentage: discountPct,
-      created_by: user.id,
-      is_read_by_admin: false,
-      is_read_by_sales: true,
-    });
+    const { data: newQuote, error } = await supabase
+      .from("quotes")
+      .insert({
+        product_id: data.product_id,
+        customer_id: data.customer_id,
+        customer_company: customerCompanyFallback,
+        customer_contact: data.customer_contact || null,
+        configuration: configArray,
+        base_price_snapshot: data.base_price_snapshot,
+        final_price: discountedPrice,
+        currency: data.currency,
+        status: quoteStatus,
+        discount_percentage: discountPct,
+        created_by: user.id,
+        is_read_by_admin: false,
+        is_read_by_sales: true,
+      })
+      .select("id")
+      .single();
 
     if (error) {
       console.error("Teklif Kayıt Hatası:", error);
       errorMsg = error.message;
     } else {
       isSuccess = true;
+
+      // Teklif doğrudan müşteriye gönderilmiş (pending) durumdaysa otomatik
+      // takip görevi oluştur. pending_admin_approval'da henüz gönderilmedi,
+      // görev onay sonrası approveDiscountAction içinde oluşturulur. Bu bir
+      // yardımcı işlemdir; hata teklif oluşturma akışını bozmamalı.
+      if (quoteStatus === "pending" && newQuote?.id) {
+        try {
+          await ensureQuoteFollowUpTask(newQuote.id);
+        } catch (followUpError) {
+          console.error("Takip Görevi Oluşturma Hatası:", followUpError);
+        }
+      }
     }
   } catch (error: unknown) {
     console.error("Action Failed:", error);
@@ -304,6 +321,16 @@ export async function approveDiscountAction(
       .eq("id", quoteId);
 
     if (error) throw error;
+
+    // Onaylanan teklif artık müşteriye gönderilmiş (pending) sayılır —
+    // otomatik takip görevi oluştur. Reddedilen teklifler için gerekmez.
+    if (newStatus === "pending") {
+      try {
+        await ensureQuoteFollowUpTask(quoteId);
+      } catch (followUpError) {
+        console.error("Takip Görevi Oluşturma Hatası:", followUpError);
+      }
+    }
 
     revalidatePath("/sales/quotes");
     revalidatePath(`/sales/quotes/${quoteId}`);

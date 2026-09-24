@@ -12,6 +12,7 @@ export async function updateGlobalSettingsAction(data: {
   default_margin: number;
   quote_footer_text: string;
   discount_approval_threshold: number;
+  quote_followup_days: number;
 }) {
   try {
     const supabase = await createClient();
@@ -44,6 +45,7 @@ export async function updateGlobalSettingsAction(data: {
           default_margin: data.default_margin,
           quote_footer_text: data.quote_footer_text,
           discount_approval_threshold: data.discount_approval_threshold,
+          quote_followup_days: data.quote_followup_days,
           updated_at: new Date().toISOString(),
         })
         .eq("id", existing[0].id);
@@ -58,6 +60,7 @@ export async function updateGlobalSettingsAction(data: {
         default_margin: data.default_margin,
         quote_footer_text: data.quote_footer_text,
         discount_approval_threshold: data.discount_approval_threshold,
+        quote_followup_days: data.quote_followup_days,
       });
 
       if (error) throw error;

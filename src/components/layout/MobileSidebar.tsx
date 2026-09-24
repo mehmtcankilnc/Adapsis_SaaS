@@ -27,12 +27,14 @@ export function MobileSidebar({
   isSuperAdmin,
   unreadQuoteCount,
   pendingRequestCount,
+  dueTaskCount,
   userName,
   role,
 }: {
   isSuperAdmin: boolean;
   unreadQuoteCount: number;
   pendingRequestCount: number;
+  dueTaskCount: number;
   userName: string;
   role: string;
 }) {
@@ -73,8 +75,19 @@ export function MobileSidebar({
             </div>
 
             <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-              <Link href="/sales/dashboard" onClick={close} className={linkClass(pathname === "/sales/dashboard")}>
-                <LayoutDashboard className="w-4 h-4 opacity-70 shrink-0" /> Dashboard
+              <Link
+                href="/sales/dashboard"
+                onClick={close}
+                className={`${linkClass(pathname === "/sales/dashboard")} justify-between`}
+              >
+                <span className="flex items-center gap-2.5">
+                  <LayoutDashboard className="w-4 h-4 opacity-70 shrink-0" /> Dashboard
+                </span>
+                {dueTaskCount > 0 && (
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold leading-none text-white bg-red-500 shrink-0">
+                    {dueTaskCount}
+                  </span>
+                )}
               </Link>
 
               <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 px-3 pt-4 pb-1">

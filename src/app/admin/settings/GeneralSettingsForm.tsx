@@ -20,6 +20,7 @@ export function GeneralSettingsForm({ settings }: { settings: GlobalSettings | n
     default_margin: settings?.default_margin || 10,
     quote_footer_text: settings?.quote_footer_text || "",
     discount_approval_threshold: settings?.discount_approval_threshold ?? 5,
+    quote_followup_days: settings?.quote_followup_days ?? 3,
   });
 
   const handleChange = (field: string, value: string | number) => {
@@ -105,6 +106,18 @@ export function GeneralSettingsForm({ settings }: { settings: GlobalSettings | n
             />
             <p className="text-xs text-slate-500">
               Bu oranın üzerindeki iskontolar otomatik olarak admin onayına gönderilir.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label>Teklif Takip Süresi (gün)</Label>
+            <Input
+              type="number"
+              min={1}
+              value={formData.quote_followup_days}
+              onChange={(e) => handleChange("quote_followup_days", Number(e.target.value))}
+            />
+            <p className="text-xs text-slate-500">
+              Teklif müşteriye gönderildikten bu kadar gün sonra ilgili temsilciye otomatik takip görevi oluşturulur.
             </p>
           </div>
         </div>

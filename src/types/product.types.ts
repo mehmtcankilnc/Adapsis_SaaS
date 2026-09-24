@@ -221,4 +221,5 @@ export interface GlobalSettings extends BaseEntity {
   default_margin: number;
   quote_footer_text?: string | null;
   discount_approval_threshold: number;
+  quote_followup_days: number;
 }

@@ -71,6 +71,20 @@ export async function Sidebar() {
     unreadQuoteCount = count || 0;
   }
 
+  // Vadesi gelen/gecikmiş görev sayısı (Dashboard rozeti)
+  const endOfToday = new Date();
+  endOfToday.setHours(23, 59, 59, 999);
+  let dueTaskQuery = supabase
+    .from("tasks")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "pending")
+    .lte("due_date", endOfToday.toISOString());
+  if (!isSuperAdmin) {
+    dueTaskQuery = dueTaskQuery.or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`);
+  }
+  const { count: dueTaskCountRaw } = await dueTaskQuery;
+  const dueTaskCount = dueTaskCountRaw || 0;
+
   return (
     <>
       {/* Mobil üst çubuk (lg altı) — sidebar yerine hamburger menü açar */}
@@ -84,6 +98,7 @@ export async function Sidebar() {
             isSuperAdmin={isSuperAdmin}
             unreadQuoteCount={unreadQuoteCount}
             pendingRequestCount={pendingRequestCount}
+            dueTaskCount={dueTaskCount}
             userName={name}
             role={role}
           />
@@ -98,8 +113,16 @@ export async function Sidebar() {
         </Link>
 
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          <Link href="/sales/dashboard" className={navLinkClass}>
+          <Link href="/sales/dashboard" className={`${navLinkClass} relative`}>
             <LayoutDashboard className="w-4 h-4 opacity-70 shrink-0" /> Dashboard
+            {dueTaskCount > 0 && (
+              <span
+                title="Vadesi gelen/gecikmiş görevler"
+                className="ml-auto flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold leading-none text-white bg-red-500 shrink-0"
+              >
+                {dueTaskCount}
+              </span>
+            )}
           </Link>
 
           <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 px-3 pt-4 pb-1">
