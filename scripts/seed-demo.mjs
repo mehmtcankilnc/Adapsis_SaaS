@@ -4,29 +4,17 @@
 // doğal FK'si olmayan tablolar (activities/tasks/opportunities/contacts/documents/
 // quote_templates/system_requests/quotes) önce demo verisine göre temizlenip yeniden eklenir.
 
-import { createClient } from '@supabase/supabase-js'
-import { Agent, setGlobalDispatcher } from 'undici'
-import fs from 'fs'
+// Bu dosya iki şekilde kullanılabilir:
+//  1) CLI: `node scripts/seed-demo.mjs` — .env.local'i elle okur, IPv6/undici
+//     workaround'ını uygular (bkz. aşağıdaki CLI bloğu).
+//  2) Modül: `import { seedDemoData } from '../../scripts/seed-demo.mjs'` —
+//     örn. Vercel Cron route'u (src/app/api/cron/reseed-demo/route.ts)
+//     zaten sahip olduğu admin Supabase client'ı doğrudan geçer.
+// Her iki yol da aynı `supabase` modül değişkenini (closure ile aşağıdaki
+// yardımcı fonksiyonlarda kullanılıyor) `seedDemoData(client)` çağrısında set eder.
 
-// Bu ortamda IPv6 bağlantı denemesi undici'nin 10sn connect timeout'una takılıp
-// düzenli olarak başarısız oluyor; IPv4'e zorlamak bağlantıyı anında kuruyor.
-setGlobalDispatcher(new Agent({ connect: { family: 4 } }))
-
-const envContent = fs.readFileSync('.env.local', 'utf-8')
-const urlMatch = envContent.match(/NEXT_PUBLIC_SUPABASE_URL=([^\r\n]+)/)
-const secretMatch = envContent.match(/SUPABASE_SECRET_KEY=([^\r\n]+)/)
-
-const supabaseUrl = urlMatch ? urlMatch[1] : ''
-const secretKey = secretMatch ? secretMatch[1] : ''
-
-if (!supabaseUrl || !secretKey) {
-  console.error('HATA: .env.local dosyasından NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SECRET_KEY okunamadı!')
-  process.exit(1)
-}
-
-const supabase = createClient(supabaseUrl, secretKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-})
+/** @type {import('@supabase/supabase-js').SupabaseClient} */
+let supabase
 
 function must(label, { data, error }) {
   if (error) {
@@ -165,7 +153,8 @@ async function upsertAuthUser(u, orgId) {
 // main
 // ---------------------------------------------------------------------------
 
-async function main() {
+export async function seedDemoData(client) {
+  supabase = client
   console.log('== Adapsis demo/portfolyo verisi yükleniyor ==\n')
 
   console.log('-> Organizasyon (yeni "şirket") oluşturuluyor...')
@@ -701,7 +690,39 @@ async function main() {
   console.log('------------------------------------------')
 }
 
-main().catch((e) => {
-  console.error('\nSeed işlemi başarısız oldu:', e.message)
-  process.exit(1)
-})
+// ---------------------------------------------------------------------------
+// CLI giriş noktası — sadece `node scripts/seed-demo.mjs` ile doğrudan
+// çalıştırıldığında devreye girer (modül olarak import edildiğinde çalışmaz).
+// ---------------------------------------------------------------------------
+const { pathToFileURL } = await import('url')
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const { createClient } = await import('@supabase/supabase-js')
+  const { Agent, setGlobalDispatcher } = await import('undici')
+  const fs = await import('fs')
+
+  // Bu ortamda (Windows/yerel) IPv6 bağlantı denemesi undici'nin 10sn connect
+  // timeout'una takılıp düzenli olarak başarısız oluyor; IPv4'e zorlamak
+  // bağlantıyı anında kuruyor. Vercel'in kendi ağında bu workaround'a gerek yok.
+  setGlobalDispatcher(new Agent({ connect: { family: 4 } }))
+
+  const envContent = fs.readFileSync('.env.local', 'utf-8')
+  const urlMatch = envContent.match(/NEXT_PUBLIC_SUPABASE_URL=([^\r\n]+)/)
+  const secretMatch = envContent.match(/SUPABASE_SECRET_KEY=([^\r\n]+)/)
+
+  const supabaseUrl = urlMatch ? urlMatch[1] : ''
+  const secretKey = secretMatch ? secretMatch[1] : ''
+
+  if (!supabaseUrl || !secretKey) {
+    console.error('HATA: .env.local dosyasından NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SECRET_KEY okunamadı!')
+    process.exit(1)
+  }
+
+  const client = createClient(supabaseUrl, secretKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+
+  seedDemoData(client).catch((e) => {
+    console.error('\nSeed işlemi başarısız oldu:', e.message)
+    process.exit(1)
+  })
+}

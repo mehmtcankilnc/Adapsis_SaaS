@@ -18,6 +18,7 @@ import {
   Boxes,
 } from "lucide-react";
 import { CurrencySelector } from "./CurrencySelector";
+import { LanguageSelector } from "./LanguageSelector";
 import { UserMenu } from "./UserMenu";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
@@ -163,7 +164,10 @@ export function MobileSidebar({
             </div>
 
             <div className="shrink-0 border-t border-slate-800 p-3 space-y-3">
-              <CurrencySelector />
+              <div className="flex items-center gap-2">
+                <LanguageSelector />
+                <CurrencySelector />
+              </div>
               <UserMenu name={userName} role={role} />
             </div>
           </div>
