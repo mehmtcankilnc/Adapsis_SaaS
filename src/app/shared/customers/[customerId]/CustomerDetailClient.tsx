@@ -87,6 +87,9 @@ import {
 } from "@/actions/document.actions";
 import { cn } from "@/lib/utils";
 import type { Activity, ActivityType, Contact, Customer, CustomerDocument, CustomerStatus, Opportunity, OpportunityStage, Task, TaskStatus } from "@/types/product.types";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { localeFor } from "@/lib/i18n/format";
+import type { DictionaryKey } from "@/lib/i18n/dictionary";
 
 const CURRENCIES = ["TRY", "USD", "EUR", "GBP", "CHF", "JPY"];
 
@@ -104,48 +107,58 @@ function getProductName(products: QuoteRow["products"]): string {
   return Array.isArray(products) ? products[0]?.name || "—" : products.name;
 }
 
-const STATUS_MAP: Record<CustomerStatus, { label: string; variant: "success" | "warning" | "secondary" | "destructive" }> = {
-  lead: { label: "Potansiyel", variant: "warning" },
-  active: { label: "Aktif", variant: "success" },
-  inactive: { label: "Pasif", variant: "secondary" },
-  lost: { label: "Kaybedildi", variant: "destructive" },
-};
+function getStatusMap(t: (key: DictionaryKey) => string): Record<CustomerStatus, { label: string; variant: "success" | "warning" | "secondary" | "destructive" }> {
+  return {
+    lead: { label: t("customers.status.lead"), variant: "warning" },
+    active: { label: t("customers.status.active"), variant: "success" },
+    inactive: { label: t("customers.status.inactive"), variant: "secondary" },
+    lost: { label: t("customers.status.lost"), variant: "destructive" },
+  };
+}
 
-const QUOTE_STATUS_MAP: Record<string, { label: string; variant: "success" | "warning" | "secondary" | "destructive" | "brand" }> = {
-  pending: { label: "Bekliyor", variant: "warning" },
-  accepted: { label: "Onaylandı", variant: "success" },
-  rejected: { label: "Reddedildi", variant: "destructive" },
-  pending_admin_approval: { label: "İskonto Onayı", variant: "brand" },
-};
+function getQuoteStatusMap(t: (key: DictionaryKey) => string): Record<string, { label: string; variant: "success" | "warning" | "secondary" | "destructive" | "brand" }> {
+  return {
+    pending: { label: t("customers.quoteStatus.pending"), variant: "warning" },
+    accepted: { label: t("customers.quoteStatus.accepted"), variant: "success" },
+    rejected: { label: t("customers.quoteStatus.rejected"), variant: "destructive" },
+    pending_admin_approval: { label: t("customers.quoteStatus.pendingAdminApproval"), variant: "brand" },
+  };
+}
 
-const ACTIVITY_TYPE_MAP: Record<ActivityType, { label: string; icon: typeof Phone }> = {
-  call: { label: "Arama", icon: Phone },
-  email: { label: "E-posta", icon: Mail },
-  meeting: { label: "Toplantı", icon: CalendarClock },
-  note: { label: "Not", icon: FileText },
-  other: { label: "Diğer", icon: MessageSquare },
-};
+function getActivityTypeMap(t: (key: DictionaryKey) => string): Record<ActivityType, { label: string; icon: typeof Phone }> {
+  return {
+    call: { label: t("customers.activityType.call"), icon: Phone },
+    email: { label: t("customers.activityType.email"), icon: Mail },
+    meeting: { label: t("customers.activityType.meeting"), icon: CalendarClock },
+    note: { label: t("customers.activityType.note"), icon: FileText },
+    other: { label: t("customers.activityType.other"), icon: MessageSquare },
+  };
+}
 
-const TASK_STATUS_MAP: Record<TaskStatus, { label: string; variant: "success" | "warning" | "secondary" }> = {
-  pending: { label: "Bekliyor", variant: "warning" },
-  completed: { label: "Tamamlandı", variant: "success" },
-  cancelled: { label: "İptal Edildi", variant: "secondary" },
-};
+function getTaskStatusMap(t: (key: DictionaryKey) => string): Record<TaskStatus, { label: string; variant: "success" | "warning" | "secondary" }> {
+  return {
+    pending: { label: t("customers.taskStatus.pending"), variant: "warning" },
+    completed: { label: t("customers.taskStatus.completed"), variant: "success" },
+    cancelled: { label: t("customers.taskStatus.cancelled"), variant: "secondary" },
+  };
+}
 
-const OPPORTUNITY_STAGE_MAP: Record<OpportunityStage, { label: string; variant: "success" | "warning" | "secondary" | "destructive" | "brand" }> = {
-  lead: { label: "Potansiyel", variant: "secondary" },
-  qualified: { label: "Nitelikli", variant: "secondary" },
-  proposal: { label: "Teklif Aşamasında", variant: "warning" },
-  negotiation: { label: "Müzakere", variant: "brand" },
-  won: { label: "Kazanıldı", variant: "success" },
-  lost: { label: "Kaybedildi", variant: "destructive" },
-};
+function getOpportunityStageMap(t: (key: DictionaryKey) => string): Record<OpportunityStage, { label: string; variant: "success" | "warning" | "secondary" | "destructive" | "brand" }> {
+  return {
+    lead: { label: t("customers.opportunityStage.lead"), variant: "secondary" },
+    qualified: { label: t("customers.opportunityStage.qualified"), variant: "secondary" },
+    proposal: { label: t("customers.opportunityStage.proposal"), variant: "warning" },
+    negotiation: { label: t("customers.opportunityStage.negotiation"), variant: "brand" },
+    won: { label: t("customers.opportunityStage.won"), variant: "success" },
+    lost: { label: t("customers.opportunityStage.lost"), variant: "destructive" },
+  };
+}
 
-const formatDate = (dateStr: string) =>
-  new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric" }).format(new Date(dateStr));
+const formatDate = (dateStr: string, locale: string) =>
+  new Intl.DateTimeFormat(locale, { day: "2-digit", month: "long", year: "numeric" }).format(new Date(dateStr));
 
-const formatDateTime = (dateStr: string) =>
-  new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(dateStr));
+const formatDateTime = (dateStr: string, locale: string) =>
+  new Intl.DateTimeFormat(locale, { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(dateStr));
 
 const formatPrice = (amount: number, currency: string) =>
   new Intl.NumberFormat("tr-TR", { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
@@ -199,6 +212,13 @@ export function CustomerDetailClient({
   salesReps: { id: string; full_name: string | null; role: string }[];
   canEdit: boolean;
 }) {
+  const { t, lang } = useLanguage();
+  const locale = localeFor(lang);
+  const STATUS_MAP = getStatusMap(t);
+  const QUOTE_STATUS_MAP = getQuoteStatusMap(t);
+  const ACTIVITY_TYPE_MAP = getActivityTypeMap(t);
+  const TASK_STATUS_MAP = getTaskStatusMap(t);
+  const OPPORTUNITY_STAGE_MAP = getOpportunityStageMap(t);
   const router = useRouter();
   const [customer, setCustomer] = useState(initialCustomer);
   const [contacts, setContacts] = useState(initialContacts);
@@ -296,7 +316,7 @@ export function CustomerDetailClient({
 
   async function handleSaveCustomer() {
     if (!form.company_name.trim()) {
-      toast.error("Firma adı boş bırakılamaz.");
+      toast.error(t("customers.errors.companyNameRequired"));
       return;
     }
     setIsSaving(true);
@@ -310,7 +330,7 @@ export function CustomerDetailClient({
       owner_id: form.owner_id || null,
       industry: form.industry || null,
       source: form.source || null,
-      tags: form.tagsInput.split(",").map((t) => t.trim()).filter(Boolean),
+      tags: form.tagsInput.split(",").map((tag) => tag.trim()).filter(Boolean),
       notes: form.notes || null,
     });
     setIsSaving(false);
@@ -318,9 +338,9 @@ export function CustomerDetailClient({
     if (res.success && res.customer) {
       setCustomer(res.customer);
       setIsEditing(false);
-      toast.success("Müşteri güncellendi");
+      toast.success(t("customers.toast.updateSuccess"));
     } else {
-      toast.error("Güncelleme başarısız", { description: res.error });
+      toast.error(t("customers.toast.updateError"), { description: res.error });
     }
   }
 
@@ -345,7 +365,7 @@ export function CustomerDetailClient({
 
   async function handleSaveContact() {
     if (!contactForm.full_name.trim()) {
-      toast.error("Kişi adı zorunludur.");
+      toast.error(t("customers.errors.contactNameRequired"));
       return;
     }
     setIsContactSaving(true);
@@ -367,10 +387,10 @@ export function CustomerDetailClient({
             ? updated.map((c) => (c.id === editingContact.id ? c : { ...c, is_primary: false }))
             : updated;
         });
-        toast.success("Kişi güncellendi");
+        toast.success(t("customers.toast.contactUpdateSuccess"));
         setIsContactDialogOpen(false);
       } else {
-        toast.error("Kişi güncellenemedi", { description: res.error });
+        toast.error(t("customers.toast.contactUpdateError"), { description: res.error });
       }
     } else {
       const res = await createContactAction({
@@ -388,22 +408,22 @@ export function CustomerDetailClient({
           const next = contactForm.is_primary ? prev.map((c) => ({ ...c, is_primary: false })) : prev;
           return [res.contact!, ...next];
         });
-        toast.success("Kişi eklendi");
+        toast.success(t("customers.toast.contactAddSuccess"));
         setIsContactDialogOpen(false);
       } else {
-        toast.error("Kişi eklenemedi", { description: res.error });
+        toast.error(t("customers.toast.contactAddError"), { description: res.error });
       }
     }
   }
 
   async function handleDeleteContact(contact: Contact) {
-    if (!window.confirm(`"${contact.full_name}" silinsin mi?`)) return;
+    if (!window.confirm(`"${contact.full_name}${t("customers.confirm.deleteItemSuffix")}`)) return;
     const res = await deleteContactAction(contact.id);
     if (res.success) {
       setContacts((prev) => prev.filter((c) => c.id !== contact.id));
-      toast.success("Kişi silindi");
+      toast.success(t("customers.toast.contactDeleteSuccess"));
     } else {
-      toast.error("Kişi silinemedi", { description: res.error });
+      toast.error(t("customers.toast.contactDeleteError"), { description: res.error });
     }
   }
 
@@ -431,7 +451,7 @@ export function CustomerDetailClient({
 
   async function handleSaveActivity() {
     if (!activityForm.subject.trim()) {
-      toast.error("Konu zorunludur.");
+      toast.error(t("customers.errors.subjectRequired"));
       return;
     }
     setIsActivitySaving(true);
@@ -451,10 +471,10 @@ export function CustomerDetailClient({
             .map((a) => (a.id === editingActivity.id ? res.activity! : a))
             .sort((a, b) => new Date(b.activity_date).getTime() - new Date(a.activity_date).getTime())
         );
-        toast.success("Aktivite güncellendi");
+        toast.success(t("customers.toast.activityUpdateSuccess"));
         setIsActivityDialogOpen(false);
       } else {
-        toast.error("Aktivite güncellenemedi", { description: res.error });
+        toast.error(t("customers.toast.activityUpdateError"), { description: res.error });
       }
     } else {
       const res = await createActivityAction({
@@ -471,22 +491,22 @@ export function CustomerDetailClient({
             (a, b) => new Date(b.activity_date).getTime() - new Date(a.activity_date).getTime()
           )
         );
-        toast.success("Aktivite eklendi");
+        toast.success(t("customers.toast.activityAddSuccess"));
         setIsActivityDialogOpen(false);
       } else {
-        toast.error("Aktivite eklenemedi", { description: res.error });
+        toast.error(t("customers.toast.activityAddError"), { description: res.error });
       }
     }
   }
 
   async function handleDeleteActivity(activity: Activity) {
-    if (!window.confirm(`"${activity.subject}" silinsin mi?`)) return;
+    if (!window.confirm(`"${activity.subject}${t("customers.confirm.deleteItemSuffix")}`)) return;
     const res = await deleteActivityAction(activity.id);
     if (res.success) {
       setActivities((prev) => prev.filter((a) => a.id !== activity.id));
-      toast.success("Aktivite silindi");
+      toast.success(t("customers.toast.activityDeleteSuccess"));
     } else {
-      toast.error("Aktivite silinemedi", { description: res.error });
+      toast.error(t("customers.toast.activityDeleteError"), { description: res.error });
     }
   }
 
@@ -514,7 +534,7 @@ export function CustomerDetailClient({
 
   async function handleSaveTask() {
     if (!taskForm.title.trim()) {
-      toast.error("Görev başlığı zorunludur.");
+      toast.error(t("customers.errors.taskTitleRequired"));
       return;
     }
     setIsTaskSaving(true);
@@ -531,13 +551,13 @@ export function CustomerDetailClient({
       if (res.success && res.task) {
         setTasks((prev) =>
           prev
-            .map((t) => (t.id === editingTask.id ? res.task! : t))
+            .map((tk) => (tk.id === editingTask.id ? res.task! : tk))
             .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
         );
-        toast.success("Görev güncellendi");
+        toast.success(t("customers.toast.taskUpdateSuccess"));
         setIsTaskDialogOpen(false);
       } else {
-        toast.error("Görev güncellenemedi", { description: res.error });
+        toast.error(t("customers.toast.taskUpdateError"), { description: res.error });
       }
     } else {
       const res = await createTaskAction({
@@ -554,10 +574,10 @@ export function CustomerDetailClient({
             (a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
           )
         );
-        toast.success("Görev eklendi");
+        toast.success(t("customers.toast.taskAddSuccess"));
         setIsTaskDialogOpen(false);
       } else {
-        toast.error("Görev eklenemedi", { description: res.error });
+        toast.error(t("customers.toast.taskAddError"), { description: res.error });
       }
     }
   }
@@ -566,20 +586,20 @@ export function CustomerDetailClient({
     const nextStatus: TaskStatus = task.status === "completed" ? "pending" : "completed";
     const res = await updateTaskAction(task.id, { status: nextStatus });
     if (res.success && res.task) {
-      setTasks((prev) => prev.map((t) => (t.id === task.id ? res.task! : t)));
+      setTasks((prev) => prev.map((tk) => (tk.id === task.id ? res.task! : tk)));
     } else {
-      toast.error("Görev durumu güncellenemedi", { description: res.error });
+      toast.error(t("customers.toast.taskStatusUpdateError"), { description: res.error });
     }
   }
 
   async function handleDeleteTask(task: Task) {
-    if (!window.confirm(`"${task.title}" silinsin mi?`)) return;
+    if (!window.confirm(`"${task.title}${t("customers.confirm.deleteItemSuffix")}`)) return;
     const res = await deleteTaskAction(task.id);
     if (res.success) {
-      setTasks((prev) => prev.filter((t) => t.id !== task.id));
-      toast.success("Görev silindi");
+      setTasks((prev) => prev.filter((tk) => tk.id !== task.id));
+      toast.success(t("customers.toast.taskDeleteSuccess"));
     } else {
-      toast.error("Görev silinemedi", { description: res.error });
+      toast.error(t("customers.toast.taskDeleteError"), { description: res.error });
     }
   }
 
@@ -617,7 +637,7 @@ export function CustomerDetailClient({
 
   async function handleSaveOpportunity() {
     if (!opportunityForm.title.trim()) {
-      toast.error("Fırsat başlığı zorunludur.");
+      toast.error(t("customers.errors.opportunityTitleRequired"));
       return;
     }
     setIsOpportunitySaving(true);
@@ -640,10 +660,10 @@ export function CustomerDetailClient({
       setIsOpportunitySaving(false);
       if (res.success && res.opportunity) {
         setOpportunities((prev) => prev.map((o) => (o.id === editingOpportunity.id ? res.opportunity! : o)));
-        toast.success("Fırsat güncellendi");
+        toast.success(t("customers.toast.opportunityUpdateSuccess"));
         setIsOpportunityDialogOpen(false);
       } else {
-        toast.error("Fırsat güncellenemedi", { description: res.error });
+        toast.error(t("customers.toast.opportunityUpdateError"), { description: res.error });
       }
     } else {
       const res = await createOpportunityAction({
@@ -661,22 +681,22 @@ export function CustomerDetailClient({
       setIsOpportunitySaving(false);
       if (res.success && res.opportunity) {
         setOpportunities((prev) => [res.opportunity!, ...prev]);
-        toast.success("Fırsat eklendi");
+        toast.success(t("customers.toast.opportunityAddSuccess"));
         setIsOpportunityDialogOpen(false);
       } else {
-        toast.error("Fırsat eklenemedi", { description: res.error });
+        toast.error(t("customers.toast.opportunityAddError"), { description: res.error });
       }
     }
   }
 
   async function handleDeleteOpportunity(opportunity: Opportunity) {
-    if (!window.confirm(`"${opportunity.title}" silinsin mi?`)) return;
+    if (!window.confirm(`"${opportunity.title}${t("customers.confirm.deleteItemSuffix")}`)) return;
     const res = await deleteOpportunityAction(opportunity.id);
     if (res.success) {
       setOpportunities((prev) => prev.filter((o) => o.id !== opportunity.id));
-      toast.success("Fırsat silindi");
+      toast.success(t("customers.toast.opportunityDeleteSuccess"));
     } else {
-      toast.error("Fırsat silinemedi", { description: res.error });
+      toast.error(t("customers.toast.opportunityDeleteError"), { description: res.error });
     }
   }
 
@@ -687,7 +707,7 @@ export function CustomerDetailClient({
 
   async function handleUploadDocument() {
     if (!pendingFile) {
-      toast.error("Bir dosya seçin.");
+      toast.error(t("customers.errors.fileRequired"));
       return;
     }
     setIsDocumentUploading(true);
@@ -699,11 +719,11 @@ export function CustomerDetailClient({
     setIsDocumentUploading(false);
     if (res.success && res.document) {
       setDocuments((prev) => [res.document!, ...prev]);
-      toast.success("Doküman yüklendi");
+      toast.success(t("customers.toast.documentUploadSuccess"));
       setIsDocumentDialogOpen(false);
       setPendingFile(null);
     } else {
-      toast.error("Doküman yüklenemedi", { description: res.error });
+      toast.error(t("customers.toast.documentUploadError"), { description: res.error });
     }
   }
 
@@ -712,18 +732,18 @@ export function CustomerDetailClient({
     if (res.success && res.url) {
       window.open(res.url, "_blank");
     } else {
-      toast.error("İndirme linki oluşturulamadı", { description: res.error });
+      toast.error(t("customers.toast.downloadLinkError"), { description: res.error });
     }
   }
 
   async function handleDeleteDocument(doc: CustomerDocument) {
-    if (!window.confirm(`"${doc.file_name}" silinsin mi?`)) return;
+    if (!window.confirm(`"${doc.file_name}${t("customers.confirm.deleteItemSuffix")}`)) return;
     const res = await deleteDocumentAction(doc.id);
     if (res.success) {
       setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
-      toast.success("Doküman silindi");
+      toast.success(t("customers.toast.documentDeleteSuccess"));
     } else {
-      toast.error("Doküman silinemedi", { description: res.error });
+      toast.error(t("customers.toast.documentDeleteError"), { description: res.error });
     }
   }
 
@@ -735,7 +755,7 @@ export function CustomerDetailClient({
             href="/shared/customers"
             className="flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors mb-4"
           >
-            <ArrowLeft className="mr-2 h-4 w-4" /> Müşteri Veritabanına Dön
+            <ArrowLeft className="mr-2 h-4 w-4" /> {t("customers.backToDatabase")}
           </Link>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -746,13 +766,13 @@ export function CustomerDetailClient({
                 <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{customer.company_name}</h1>
                 <div className="flex items-center gap-2 mt-1">
                   <Badge variant={stat.variant}>{stat.label}</Badge>
-                  {ownerName && <span className="text-sm text-slate-500">Sorumlu: {ownerName}</span>}
+                  {ownerName && <span className="text-sm text-slate-500">{t("customers.responsiblePrefix")}{ownerName}</span>}
                 </div>
               </div>
             </div>
             {canEdit && !isEditing && (
               <Button variant="outline" onClick={startEdit}>
-                <Pencil className="mr-2 h-4 w-4" /> Düzenle
+                <Pencil className="mr-2 h-4 w-4" /> {t("customers.edit")}
               </Button>
             )}
           </div>
@@ -762,29 +782,29 @@ export function CustomerDetailClient({
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="overview">
           <TabsList>
-            <TabsTrigger value="overview">Genel Bakış</TabsTrigger>
-            <TabsTrigger value="contacts">Yetkili Kişiler ({contacts.length})</TabsTrigger>
-            <TabsTrigger value="activities">Aktiviteler ({activities.length})</TabsTrigger>
-            <TabsTrigger value="tasks">Görevler ({tasks.filter((t) => t.status === "pending").length})</TabsTrigger>
-            <TabsTrigger value="opportunities">Fırsatlar ({opportunities.length})</TabsTrigger>
-            <TabsTrigger value="documents">Dokümanlar ({documents.length})</TabsTrigger>
-            <TabsTrigger value="quotes">Teklifler ({quotes.length})</TabsTrigger>
+            <TabsTrigger value="overview">{t("customers.tabs.overview")}</TabsTrigger>
+            <TabsTrigger value="contacts">{t("customers.tabs.contacts")} ({contacts.length})</TabsTrigger>
+            <TabsTrigger value="activities">{t("customers.tabs.activities")} ({activities.length})</TabsTrigger>
+            <TabsTrigger value="tasks">{t("customers.tabs.tasks")} ({tasks.filter((tk) => tk.status === "pending").length})</TabsTrigger>
+            <TabsTrigger value="opportunities">{t("customers.tabs.opportunities")} ({opportunities.length})</TabsTrigger>
+            <TabsTrigger value="documents">{t("customers.tabs.documents")} ({documents.length})</TabsTrigger>
+            <TabsTrigger value="quotes">{t("customers.tabs.quotes")} ({quotes.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
             <Card className="p-6">
               {!isEditing ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
-                  <InfoField label="Yetkili Kişi (birincil)" value={customer.contact_name} />
-                  <InfoField label="E-posta" value={customer.email} />
-                  <InfoField label="Telefon" value={customer.phone} />
-                  <InfoField label="Sektör" value={customer.industry} />
-                  <InfoField label="Kaynak" value={customer.source} />
-                  <InfoField label="Sorumlu Temsilci" value={ownerName || "Atanmamış"} />
-                  <InfoField label="Adres" value={customer.address} className="sm:col-span-2" />
-                  <InfoField label="Kayıt Tarihi" value={customer.created_at ? formatDate(customer.created_at) : "—"} />
+                  <InfoField label={t("customers.fields.primaryContact")} value={customer.contact_name} />
+                  <InfoField label={t("customers.fields.email")} value={customer.email} />
+                  <InfoField label={t("customers.form.phone")} value={customer.phone} />
+                  <InfoField label={t("customers.fields.industry")} value={customer.industry} />
+                  <InfoField label={t("customers.fields.source")} value={customer.source} />
+                  <InfoField label={t("customers.fields.owner")} value={ownerName || t("customers.unassigned")} />
+                  <InfoField label={t("customers.form.address")} value={customer.address} className="sm:col-span-2" />
+                  <InfoField label={t("customers.table.registrationDate")} value={customer.created_at ? formatDate(customer.created_at, locale) : "—"} />
                   <div className="sm:col-span-2">
-                    <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Etiketler</div>
+                    <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{t("customers.fields.tags")}</div>
                     {customer.tags && customer.tags.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
                         {customer.tags.map((tag) => (
@@ -795,33 +815,33 @@ export function CustomerDetailClient({
                       <span className="text-sm text-slate-400">—</span>
                     )}
                   </div>
-                  <InfoField label="Notlar" value={customer.notes} className="sm:col-span-2 whitespace-pre-wrap" />
+                  <InfoField label={t("customers.fields.notes")} value={customer.notes} className="sm:col-span-2 whitespace-pre-wrap" />
                 </div>
               ) : (
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Firma Adı *</Label>
+                      <Label>{t("customers.form.companyNameRequired")}</Label>
                       <Input value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })} />
                     </div>
                     <div className="space-y-2">
-                      <Label>Yetkili Kişi (birincil)</Label>
+                      <Label>{t("customers.fields.primaryContact")}</Label>
                       <Input value={form.contact_name} onChange={(e) => setForm({ ...form, contact_name: e.target.value })} />
                     </div>
                     <div className="space-y-2">
-                      <Label>E-posta</Label>
+                      <Label>{t("customers.fields.email")}</Label>
                       <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
                     </div>
                     <div className="space-y-2">
-                      <Label>Telefon</Label>
+                      <Label>{t("customers.form.phone")}</Label>
                       <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
                     </div>
                     <div className="space-y-2 sm:col-span-2">
-                      <Label>Adres</Label>
+                      <Label>{t("customers.form.address")}</Label>
                       <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
                     </div>
                     <div className="space-y-2">
-                      <Label>Durum</Label>
+                      <Label>{t("customers.fields.status")}</Label>
                       <SelectNative value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as CustomerStatus })}>
                         {Object.entries(STATUS_MAP).map(([value, { label }]) => (
                           <option key={value} value={value}>{label}</option>
@@ -829,28 +849,28 @@ export function CustomerDetailClient({
                       </SelectNative>
                     </div>
                     <div className="space-y-2">
-                      <Label>Sorumlu Temsilci</Label>
+                      <Label>{t("customers.fields.owner")}</Label>
                       <SelectNative value={form.owner_id} onChange={(e) => setForm({ ...form, owner_id: e.target.value })}>
-                        <option value="">Atanmamış</option>
+                        <option value="">{t("customers.unassigned")}</option>
                         {salesReps.map((p) => (
                           <option key={p.id} value={p.id}>{p.full_name || p.id}</option>
                         ))}
                       </SelectNative>
                     </div>
                     <div className="space-y-2">
-                      <Label>Sektör</Label>
-                      <Input value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} placeholder="Örn: Enerji, Makine İmalatı" />
+                      <Label>{t("customers.fields.industry")}</Label>
+                      <Input value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} placeholder={t("customers.form.industryPlaceholder")} />
                     </div>
                     <div className="space-y-2">
-                      <Label>Kaynak</Label>
-                      <Input value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} placeholder="Örn: Fuar, Referans, Web Formu" />
+                      <Label>{t("customers.fields.source")}</Label>
+                      <Input value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} placeholder={t("customers.form.sourcePlaceholder")} />
                     </div>
                     <div className="space-y-2 sm:col-span-2">
-                      <Label>Etiketler (virgülle ayırın)</Label>
-                      <Input value={form.tagsInput} onChange={(e) => setForm({ ...form, tagsInput: e.target.value })} placeholder="oem, yüksek-öncelik" />
+                      <Label>{t("customers.form.tagsLabel")}</Label>
+                      <Input value={form.tagsInput} onChange={(e) => setForm({ ...form, tagsInput: e.target.value })} placeholder={t("customers.form.tagsPlaceholder")} />
                     </div>
                     <div className="space-y-2 sm:col-span-2">
-                      <Label>Notlar</Label>
+                      <Label>{t("customers.fields.notes")}</Label>
                       <textarea
                         value={form.notes}
                         onChange={(e) => setForm({ ...form, notes: e.target.value })}
@@ -864,10 +884,10 @@ export function CustomerDetailClient({
                   </div>
                   <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                     <Button variant="ghost" onClick={() => setIsEditing(false)} disabled={isSaving}>
-                      <X className="mr-2 h-4 w-4" /> Vazgeç
+                      <X className="mr-2 h-4 w-4" /> {t("customers.cancelEdit")}
                     </Button>
                     <Button variant="primary" onClick={handleSaveCustomer} disabled={isSaving}>
-                      {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Kaydediliyor...</> : "Kaydet"}
+                      {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("customers.saving")}</> : t("customers.save")}
                     </Button>
                   </div>
                 </div>
@@ -879,11 +899,11 @@ export function CustomerDetailClient({
             <Card className="overflow-hidden">
               <div className="p-6 border-b border-slate-200 flex justify-between items-center">
                 <div>
-                  <h3 className="font-semibold text-slate-900">Yetkili Kişiler</h3>
-                  <p className="text-sm text-slate-500">Bu müşteriye bağlı iletişim kişileri.</p>
+                  <h3 className="font-semibold text-slate-900">{t("customers.contactsTab.heading")}</h3>
+                  <p className="text-sm text-slate-500">{t("customers.contactsTab.description")}</p>
                 </div>
                 <Button variant="primary" onClick={openNewContactDialog}>
-                  <Plus className="mr-2 h-4 w-4" /> Yeni Kişi Ekle
+                  <Plus className="mr-2 h-4 w-4" /> {t("customers.contactsTab.addContact")}
                 </Button>
               </div>
 
@@ -891,11 +911,11 @@ export function CustomerDetailClient({
                 <div className="p-8 bg-slate-50/30">
                   <EmptyState
                     icon={Users}
-                    title="Henüz Kişi Yok"
-                    description="Bu müşteriye bağlı yetkili kişi bulunmuyor."
+                    title={t("customers.contactsTab.emptyTitle")}
+                    description={t("customers.contactsTab.emptyDescription")}
                     action={
                       <Button variant="primary" onClick={openNewContactDialog}>
-                        <Plus className="mr-2 h-4 w-4" /> Yeni Kişi Ekle
+                        <Plus className="mr-2 h-4 w-4" /> {t("customers.contactsTab.addContact")}
                       </Button>
                     }
                   />
@@ -904,10 +924,10 @@ export function CustomerDetailClient({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Ad Soyad</TableHead>
-                      <TableHead>Unvan</TableHead>
-                      <TableHead>İletişim</TableHead>
-                      <TableHead className="text-right">İşlemler</TableHead>
+                      <TableHead>{t("customers.contactsTab.fullName")}</TableHead>
+                      <TableHead>{t("customers.contactsTab.title")}</TableHead>
+                      <TableHead>{t("customers.table.contact")}</TableHead>
+                      <TableHead className="text-right">{t("customers.table.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -947,11 +967,11 @@ export function CustomerDetailClient({
             <Card className="overflow-hidden">
               <div className="p-6 border-b border-slate-200 flex justify-between items-center">
                 <div>
-                  <h3 className="font-semibold text-slate-900">Aktivite Geçmişi</h3>
-                  <p className="text-sm text-slate-500">Görüşme, arama, toplantı ve notlar.</p>
+                  <h3 className="font-semibold text-slate-900">{t("customers.activitiesTab.heading")}</h3>
+                  <p className="text-sm text-slate-500">{t("customers.activitiesTab.description")}</p>
                 </div>
                 <Button variant="primary" onClick={openNewActivityDialog}>
-                  <Plus className="mr-2 h-4 w-4" /> Yeni Aktivite Ekle
+                  <Plus className="mr-2 h-4 w-4" /> {t("customers.activitiesTab.addActivity")}
                 </Button>
               </div>
 
@@ -959,11 +979,11 @@ export function CustomerDetailClient({
                 <div className="p-8 bg-slate-50/30">
                   <EmptyState
                     icon={History}
-                    title="Henüz Aktivite Yok"
-                    description="Bu müşteriyle yapılan görüşme, arama veya toplantı kaydı bulunmuyor."
+                    title={t("customers.activitiesTab.emptyTitle")}
+                    description={t("customers.activitiesTab.emptyDescription")}
                     action={
                       <Button variant="primary" onClick={openNewActivityDialog}>
-                        <Plus className="mr-2 h-4 w-4" /> Yeni Aktivite Ekle
+                        <Plus className="mr-2 h-4 w-4" /> {t("customers.activitiesTab.addActivity")}
                       </Button>
                     }
                   />
@@ -998,7 +1018,7 @@ export function CustomerDetailClient({
                             <p className="text-sm text-slate-600 mt-1 whitespace-pre-wrap">{activity.notes}</p>
                           )}
                           <p className="text-xs text-slate-400 mt-2">
-                            {formatDateTime(activity.activity_date)}
+                            {formatDateTime(activity.activity_date, locale)}
                             {creatorName && <> · {creatorName}</>}
                           </p>
                         </div>
@@ -1014,11 +1034,11 @@ export function CustomerDetailClient({
             <Card className="overflow-hidden">
               <div className="p-6 border-b border-slate-200 flex justify-between items-center">
                 <div>
-                  <h3 className="font-semibold text-slate-900">Görevler</h3>
-                  <p className="text-sm text-slate-500">Takip aramaları, hatırlatmalar ve atanmış işler.</p>
+                  <h3 className="font-semibold text-slate-900">{t("customers.tasksTab.heading")}</h3>
+                  <p className="text-sm text-slate-500">{t("customers.tasksTab.description")}</p>
                 </div>
                 <Button variant="primary" onClick={openNewTaskDialog}>
-                  <Plus className="mr-2 h-4 w-4" /> Yeni Görev Ekle
+                  <Plus className="mr-2 h-4 w-4" /> {t("customers.tasksTab.addTask")}
                 </Button>
               </div>
 
@@ -1026,11 +1046,11 @@ export function CustomerDetailClient({
                 <div className="p-8 bg-slate-50/30">
                   <EmptyState
                     icon={ListTodo}
-                    title="Henüz Görev Yok"
-                    description="Bu müşteri için atanmış bir takip görevi bulunmuyor."
+                    title={t("customers.tasksTab.emptyTitle")}
+                    description={t("customers.tasksTab.emptyDescription")}
                     action={
                       <Button variant="primary" onClick={openNewTaskDialog}>
-                        <Plus className="mr-2 h-4 w-4" /> Yeni Görev Ekle
+                        <Plus className="mr-2 h-4 w-4" /> {t("customers.tasksTab.addTask")}
                       </Button>
                     }
                   />
@@ -1047,7 +1067,7 @@ export function CustomerDetailClient({
                           type="button"
                           onClick={() => handleToggleTaskStatus(task)}
                           className="h-fit shrink-0 text-slate-300 hover:text-brand-600 transition-colors"
-                          title={task.status === "completed" ? "Bekliyor olarak işaretle" : "Tamamlandı olarak işaretle"}
+                          title={task.status === "completed" ? t("customers.taskToggle.markPending") : t("customers.taskToggle.markCompleted")}
                         >
                           {task.status === "completed" ? (
                             <CheckCircle2 className="h-5 w-5 text-emerald-500" />
@@ -1067,7 +1087,7 @@ export function CustomerDetailClient({
                               <Badge variant={statInfo.variant}>{statInfo.label}</Badge>
                               {overdue && (
                                 <Badge variant="destructive" className="flex items-center gap-1">
-                                  <Ban className="h-3 w-3" /> Gecikmiş
+                                  <Ban className="h-3 w-3" /> {t("customers.taskOverdueBadge")}
                                 </Badge>
                               )}
                             </div>
@@ -1084,8 +1104,8 @@ export function CustomerDetailClient({
                             <p className="text-sm text-slate-600 mt-1 whitespace-pre-wrap">{task.description}</p>
                           )}
                           <p className={cn("text-xs mt-2", overdue ? "text-red-500 font-medium" : "text-slate-400")}>
-                            Vade: {formatDate(task.due_date)}
-                            {assigneeName && <> · Atanan: {assigneeName}</>}
+                            {t("customers.taskDuePrefix")}{formatDate(task.due_date, locale)}
+                            {assigneeName && <>{t("customers.taskAssignedPrefix")}{assigneeName}</>}
                           </p>
                         </div>
                       </div>
@@ -1100,11 +1120,11 @@ export function CustomerDetailClient({
             <Card className="overflow-hidden">
               <div className="p-6 border-b border-slate-200 flex justify-between items-center">
                 <div>
-                  <h3 className="font-semibold text-slate-900">Fırsatlar</h3>
-                  <p className="text-sm text-slate-500">Satış hunisindeki potansiyel fırsatlar.</p>
+                  <h3 className="font-semibold text-slate-900">{t("customers.opportunitiesTab.heading")}</h3>
+                  <p className="text-sm text-slate-500">{t("customers.opportunitiesTab.description")}</p>
                 </div>
                 <Button variant="primary" onClick={openNewOpportunityDialog}>
-                  <Plus className="mr-2 h-4 w-4" /> Yeni Fırsat Ekle
+                  <Plus className="mr-2 h-4 w-4" /> {t("customers.opportunitiesTab.addOpportunity")}
                 </Button>
               </div>
 
@@ -1112,11 +1132,11 @@ export function CustomerDetailClient({
                 <div className="p-8 bg-slate-50/30">
                   <EmptyState
                     icon={Target}
-                    title="Henüz Fırsat Yok"
-                    description="Bu müşteri için satış hunisinde bir fırsat bulunmuyor."
+                    title={t("customers.opportunitiesTab.emptyTitle")}
+                    description={t("customers.opportunitiesTab.emptyDescription")}
                     action={
                       <Button variant="primary" onClick={openNewOpportunityDialog}>
-                        <Plus className="mr-2 h-4 w-4" /> Yeni Fırsat Ekle
+                        <Plus className="mr-2 h-4 w-4" /> {t("customers.opportunitiesTab.addOpportunity")}
                       </Button>
                     }
                   />
@@ -1152,21 +1172,21 @@ export function CustomerDetailClient({
                             )}
                             {opportunity.probability != null && (
                               <span className="flex items-center gap-0.5 text-slate-500">
-                                <Percent className="h-3.5 w-3.5" />{opportunity.probability} olasılık
+                                <Percent className="h-3.5 w-3.5" />{opportunity.probability}{t("customers.probabilitySuffix")}
                               </span>
                             )}
                             {opportunity.expected_close_date && (
-                              <span className="text-slate-500">Tahmini kapanış: {formatDate(opportunity.expected_close_date)}</span>
+                              <span className="text-slate-500">{t("customers.estimatedCloseDatePrefix")}{formatDate(opportunity.expected_close_date, locale)}</span>
                             )}
                           </div>
                           {opportunity.stage === "lost" && (opportunity.lost_reason || opportunity.competitor) && (
                             <p className="text-sm text-red-600 mt-1">
-                              {opportunity.lost_reason && <>Kaybedilme sebebi: {opportunity.lost_reason}</>}
-                              {opportunity.competitor && <> · Rakip: {opportunity.competitor}</>}
+                              {opportunity.lost_reason && <>{t("customers.lostReasonPrefix")}{opportunity.lost_reason}</>}
+                              {opportunity.competitor && <>{t("customers.competitorPrefix")}{opportunity.competitor}</>}
                             </p>
                           )}
                           <p className="text-xs text-slate-400 mt-2">
-                            {ownerNameForOpp ? <>Sorumlu: {ownerNameForOpp}</> : "Sorumlu atanmamış"}
+                            {ownerNameForOpp ? <>{t("customers.responsiblePrefix")}{ownerNameForOpp}</> : t("customers.noOwnerAssigned")}
                           </p>
                         </div>
                       </div>
@@ -1181,11 +1201,11 @@ export function CustomerDetailClient({
             <Card className="overflow-hidden">
               <div className="p-6 border-b border-slate-200 flex justify-between items-center">
                 <div>
-                  <h3 className="font-semibold text-slate-900">Dokümanlar</h3>
-                  <p className="text-sm text-slate-500">Sözleşme, teknik çizim, imzalı teklif gibi dosya ekleri.</p>
+                  <h3 className="font-semibold text-slate-900">{t("customers.documentsTab.heading")}</h3>
+                  <p className="text-sm text-slate-500">{t("customers.documentsTab.description")}</p>
                 </div>
                 <Button variant="primary" onClick={openUploadDialog}>
-                  <Upload className="mr-2 h-4 w-4" /> Doküman Yükle
+                  <Upload className="mr-2 h-4 w-4" /> {t("customers.documentDialog.title")}
                 </Button>
               </div>
 
@@ -1193,11 +1213,11 @@ export function CustomerDetailClient({
                 <div className="p-8 bg-slate-50/30">
                   <EmptyState
                     icon={Paperclip}
-                    title="Henüz Doküman Yok"
-                    description="Bu müşteriye bağlı bir dosya eki bulunmuyor."
+                    title={t("customers.documentsTab.emptyTitle")}
+                    description={t("customers.documentsTab.emptyDescription")}
                     action={
                       <Button variant="primary" onClick={openUploadDialog}>
-                        <Upload className="mr-2 h-4 w-4" /> Doküman Yükle
+                        <Upload className="mr-2 h-4 w-4" /> {t("customers.documentDialog.title")}
                       </Button>
                     }
                   />
@@ -1206,11 +1226,11 @@ export function CustomerDetailClient({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Dosya Adı</TableHead>
-                      <TableHead>Boyut</TableHead>
-                      <TableHead>Yükleyen</TableHead>
-                      <TableHead>Tarih</TableHead>
-                      <TableHead className="text-right">İşlemler</TableHead>
+                      <TableHead>{t("customers.documentsTab.fileName")}</TableHead>
+                      <TableHead>{t("customers.documentsTab.fileSize")}</TableHead>
+                      <TableHead>{t("customers.documentsTab.uploadedBy")}</TableHead>
+                      <TableHead>{t("customers.documentsTab.date")}</TableHead>
+                      <TableHead className="text-right">{t("customers.table.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1226,12 +1246,12 @@ export function CustomerDetailClient({
                           </TableCell>
                           <TableCell className="text-slate-500 text-sm">{formatFileSize(doc.file_size)}</TableCell>
                           <TableCell className="text-slate-500 text-sm">{uploaderName || "—"}</TableCell>
-                          <TableCell className="text-slate-500 text-sm">{formatDate(doc.created_at)}</TableCell>
+                          <TableCell className="text-slate-500 text-sm">{formatDate(doc.created_at, locale)}</TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="icon" onClick={() => handleDownloadDocument(doc)} title="İndir">
+                            <Button variant="ghost" size="icon" onClick={() => handleDownloadDocument(doc)} title={t("customers.documentsTab.downloadTooltip")}>
                               <Download className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteDocument(doc)} title="Sil">
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteDocument(doc)} title={t("customers.documentsTab.deleteTooltip")}>
                               <Trash2 className="h-4 w-4 text-red-500" />
                             </Button>
                           </TableCell>
@@ -1250,18 +1270,18 @@ export function CustomerDetailClient({
                 <div className="p-8 bg-slate-50/30">
                   <EmptyState
                     icon={FileText}
-                    title="Henüz Teklif Yok"
-                    description="Bu müşteri için oluşturulmuş bir teklif bulunmuyor."
+                    title={t("customers.quotesTab.emptyTitle")}
+                    description={t("customers.quotesTab.emptyDescription")}
                   />
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Ürün</TableHead>
-                      <TableHead>Tutar</TableHead>
-                      <TableHead>Durum</TableHead>
-                      <TableHead className="text-right">Tarih</TableHead>
+                      <TableHead>{t("customers.quotesTab.product")}</TableHead>
+                      <TableHead>{t("customers.quotesTab.amount")}</TableHead>
+                      <TableHead>{t("customers.fields.status")}</TableHead>
+                      <TableHead className="text-right">{t("customers.documentsTab.date")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1278,7 +1298,7 @@ export function CustomerDetailClient({
                           </TableCell>
                           <TableCell className="font-mono">{formatPrice(quote.final_price, quote.currency)}</TableCell>
                           <TableCell><Badge variant={qStat.variant}>{qStat.label}</Badge></TableCell>
-                          <TableCell className="text-right text-slate-500 text-sm">{formatDate(quote.created_at)}</TableCell>
+                          <TableCell className="text-right text-slate-500 text-sm">{formatDate(quote.created_at, locale)}</TableCell>
                         </TableRow>
                       );
                     })}
@@ -1293,32 +1313,32 @@ export function CustomerDetailClient({
       <Dialog open={isContactDialogOpen} onOpenChange={setIsContactDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingContact ? "Kişiyi Düzenle" : "Yeni Kişi Ekle"}</DialogTitle>
+            <DialogTitle>{editingContact ? t("customers.contactDialog.editTitle") : t("customers.contactsTab.addContact")}</DialogTitle>
             <DialogDescription>
-              {customer.company_name} firmasına bağlı yetkili kişi bilgileri.
+              {customer.company_name}{t("customers.contactDialog.descriptionSuffix")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 px-5 py-4 overflow-y-auto">
             <div className="space-y-2">
-              <Label>Ad Soyad <span className="text-red-500">*</span></Label>
-              <Input value={contactForm.full_name} onChange={(e) => setContactForm({ ...contactForm, full_name: e.target.value })} placeholder="Ahmet Yılmaz" />
+              <Label>{t("customers.contactDialog.fullNameLabel")} <span className="text-red-500">*</span></Label>
+              <Input value={contactForm.full_name} onChange={(e) => setContactForm({ ...contactForm, full_name: e.target.value })} placeholder={t("customers.form.contactNamePlaceholder")} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Unvan</Label>
-                <Input value={contactForm.title} onChange={(e) => setContactForm({ ...contactForm, title: e.target.value })} placeholder="Satın Alma Müdürü" />
+                <Label>{t("customers.contactsTab.title")}</Label>
+                <Input value={contactForm.title} onChange={(e) => setContactForm({ ...contactForm, title: e.target.value })} placeholder={t("customers.contactDialog.titlePlaceholder")} />
               </div>
               <div className="space-y-2">
-                <Label>Telefon</Label>
+                <Label>{t("customers.form.phone")}</Label>
                 <Input value={contactForm.phone} onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })} />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>E-posta</Label>
+              <Label>{t("customers.fields.email")}</Label>
               <Input type="email" value={contactForm.email} onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })} />
             </div>
             <div className="space-y-2">
-              <Label>Notlar</Label>
+              <Label>{t("customers.fields.notes")}</Label>
               <Input value={contactForm.notes} onChange={(e) => setContactForm({ ...contactForm, notes: e.target.value })} />
             </div>
             <label className="flex items-center gap-2 text-sm text-slate-700">
@@ -1328,13 +1348,13 @@ export function CustomerDetailClient({
                 onChange={(e) => setContactForm({ ...contactForm, is_primary: e.target.checked })}
                 className="rounded border-slate-300"
               />
-              Birincil iletişim kişisi
+              {t("customers.contactDialog.isPrimaryLabel")}
             </label>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsContactDialogOpen(false)} disabled={isContactSaving}>İptal</Button>
+            <Button variant="ghost" onClick={() => setIsContactDialogOpen(false)} disabled={isContactSaving}>{t("common.cancel")}</Button>
             <Button variant="primary" onClick={handleSaveContact} disabled={isContactSaving || !contactForm.full_name.trim()}>
-              {isContactSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Kaydediliyor...</> : "Kaydet"}
+              {isContactSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("customers.saving")}</> : t("customers.save")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1343,15 +1363,15 @@ export function CustomerDetailClient({
       <Dialog open={isActivityDialogOpen} onOpenChange={setIsActivityDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingActivity ? "Aktiviteyi Düzenle" : "Yeni Aktivite Ekle"}</DialogTitle>
+            <DialogTitle>{editingActivity ? t("customers.activityDialog.editTitle") : t("customers.activitiesTab.addActivity")}</DialogTitle>
             <DialogDescription>
-              {customer.company_name} ile yapılan görüşme, arama veya notu kaydedin.
+              {customer.company_name}{t("customers.activityDialog.descriptionSuffix")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 px-5 py-4 overflow-y-auto">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Tür</Label>
+                <Label>{t("customers.activityDialog.typeLabel")}</Label>
                 <SelectNative
                   value={activityForm.type}
                   onChange={(e) => setActivityForm({ ...activityForm, type: e.target.value as ActivityType })}
@@ -1362,7 +1382,7 @@ export function CustomerDetailClient({
                 </SelectNative>
               </div>
               <div className="space-y-2">
-                <Label>Tarih ve Saat</Label>
+                <Label>{t("customers.activityDialog.dateTimeLabel")}</Label>
                 <Input
                   type="datetime-local"
                   value={activityForm.activity_date}
@@ -1371,15 +1391,15 @@ export function CustomerDetailClient({
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Konu <span className="text-red-500">*</span></Label>
+              <Label>{t("customers.activityDialog.subjectLabel")} <span className="text-red-500">*</span></Label>
               <Input
                 value={activityForm.subject}
                 onChange={(e) => setActivityForm({ ...activityForm, subject: e.target.value })}
-                placeholder="Örn: Fiyat teklifi hakkında görüşüldü"
+                placeholder={t("customers.activityDialog.subjectPlaceholder")}
               />
             </div>
             <div className="space-y-2">
-              <Label>Notlar</Label>
+              <Label>{t("customers.fields.notes")}</Label>
               <textarea
                 value={activityForm.notes}
                 onChange={(e) => setActivityForm({ ...activityForm, notes: e.target.value })}
@@ -1392,9 +1412,9 @@ export function CustomerDetailClient({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsActivityDialogOpen(false)} disabled={isActivitySaving}>İptal</Button>
+            <Button variant="ghost" onClick={() => setIsActivityDialogOpen(false)} disabled={isActivitySaving}>{t("common.cancel")}</Button>
             <Button variant="primary" onClick={handleSaveActivity} disabled={isActivitySaving || !activityForm.subject.trim()}>
-              {isActivitySaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Kaydediliyor...</> : "Kaydet"}
+              {isActivitySaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("customers.saving")}</> : t("customers.save")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1403,23 +1423,23 @@ export function CustomerDetailClient({
       <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingTask ? "Görevi Düzenle" : "Yeni Görev Ekle"}</DialogTitle>
+            <DialogTitle>{editingTask ? t("customers.taskDialog.editTitle") : t("customers.tasksTab.addTask")}</DialogTitle>
             <DialogDescription>
-              {customer.company_name} için bir takip görevi oluşturun.
+              {customer.company_name}{t("customers.taskDialog.descriptionSuffix")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 px-5 py-4 overflow-y-auto">
             <div className="space-y-2">
-              <Label>Başlık <span className="text-red-500">*</span></Label>
+              <Label>{t("customers.taskDialog.titleLabel")} <span className="text-red-500">*</span></Label>
               <Input
                 value={taskForm.title}
                 onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
-                placeholder="Örn: 3 gün sonra ara"
+                placeholder={t("customers.taskDialog.titlePlaceholder")}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Vade Tarihi</Label>
+                <Label>{t("customers.taskDialog.dueDateLabel")}</Label>
                 <Input
                   type="date"
                   value={taskForm.due_date}
@@ -1427,12 +1447,12 @@ export function CustomerDetailClient({
                 />
               </div>
               <div className="space-y-2">
-                <Label>Atanan Kişi</Label>
+                <Label>{t("customers.taskDialog.assignedToLabel")}</Label>
                 <SelectNative
                   value={taskForm.assigned_to}
                   onChange={(e) => setTaskForm({ ...taskForm, assigned_to: e.target.value })}
                 >
-                  <option value="">Atanmamış</option>
+                  <option value="">{t("customers.unassigned")}</option>
                   {salesReps.map((p) => (
                     <option key={p.id} value={p.id}>{p.full_name || p.id}</option>
                   ))}
@@ -1440,7 +1460,7 @@ export function CustomerDetailClient({
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Açıklama</Label>
+              <Label>{t("customers.fields.description")}</Label>
               <textarea
                 value={taskForm.description}
                 onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
@@ -1453,9 +1473,9 @@ export function CustomerDetailClient({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsTaskDialogOpen(false)} disabled={isTaskSaving}>İptal</Button>
+            <Button variant="ghost" onClick={() => setIsTaskDialogOpen(false)} disabled={isTaskSaving}>{t("common.cancel")}</Button>
             <Button variant="primary" onClick={handleSaveTask} disabled={isTaskSaving || !taskForm.title.trim()}>
-              {isTaskSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Kaydediliyor...</> : "Kaydet"}
+              {isTaskSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("customers.saving")}</> : t("customers.save")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1464,23 +1484,23 @@ export function CustomerDetailClient({
       <Dialog open={isOpportunityDialogOpen} onOpenChange={setIsOpportunityDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingOpportunity ? "Fırsatı Düzenle" : "Yeni Fırsat Ekle"}</DialogTitle>
+            <DialogTitle>{editingOpportunity ? t("customers.opportunityDialog.editTitle") : t("customers.opportunitiesTab.addOpportunity")}</DialogTitle>
             <DialogDescription>
-              {customer.company_name} için satış hunisi fırsatı.
+              {customer.company_name}{t("customers.opportunityDialog.descriptionSuffix")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 px-5 py-4 overflow-y-auto">
             <div className="space-y-2">
-              <Label>Başlık <span className="text-red-500">*</span></Label>
+              <Label>{t("customers.opportunityDialog.titleLabel")}</Label>
               <Input
                 value={opportunityForm.title}
                 onChange={(e) => setOpportunityForm({ ...opportunityForm, title: e.target.value })}
-                placeholder="Örn: Yeni Proje"
+                placeholder={t("customers.opportunityDialog.titlePlaceholder")}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Aşama</Label>
+                <Label>{t("customers.opportunityDialog.stageLabel")}</Label>
                 <SelectNative
                   value={opportunityForm.stage}
                   onChange={(e) => setOpportunityForm({ ...opportunityForm, stage: e.target.value as OpportunityStage })}
@@ -1491,12 +1511,12 @@ export function CustomerDetailClient({
                 </SelectNative>
               </div>
               <div className="space-y-2">
-                <Label>Sorumlu Temsilci</Label>
+                <Label>{t("customers.fields.owner")}</Label>
                 <SelectNative
                   value={opportunityForm.owner_id}
                   onChange={(e) => setOpportunityForm({ ...opportunityForm, owner_id: e.target.value })}
                 >
-                  <option value="">Atanmamış</option>
+                  <option value="">{t("customers.unassigned")}</option>
                   {salesReps.map((p) => (
                     <option key={p.id} value={p.id}>{p.full_name || p.id}</option>
                   ))}
@@ -1505,7 +1525,7 @@ export function CustomerDetailClient({
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Tahmini Değer</Label>
+                <Label>{t("customers.opportunityDialog.estimatedValueLabel")}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -1515,7 +1535,7 @@ export function CustomerDetailClient({
                 />
               </div>
               <div className="space-y-2">
-                <Label>Para Birimi</Label>
+                <Label>{t("customers.opportunityDialog.currencyLabel")}</Label>
                 <SelectNative
                   value={opportunityForm.currency}
                   onChange={(e) => setOpportunityForm({ ...opportunityForm, currency: e.target.value })}
@@ -1526,7 +1546,7 @@ export function CustomerDetailClient({
                 </SelectNative>
               </div>
               <div className="space-y-2">
-                <Label>Olasılık (%)</Label>
+                <Label>{t("customers.opportunityDialog.probabilityLabel")}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -1538,7 +1558,7 @@ export function CustomerDetailClient({
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Tahmini Kapanış Tarihi</Label>
+              <Label>{t("customers.opportunityDialog.expectedCloseDateLabel")}</Label>
               <Input
                 type="date"
                 value={opportunityForm.expected_close_date}
@@ -1548,28 +1568,28 @@ export function CustomerDetailClient({
             {opportunityForm.stage === "lost" && (
               <div className="space-y-4 border-t border-slate-100 pt-4">
                 <div className="space-y-2">
-                  <Label>Kaybedilme Sebebi</Label>
+                  <Label>{t("customers.opportunityDialog.lostReasonLabel")}</Label>
                   <Input
                     value={opportunityForm.lost_reason}
                     onChange={(e) => setOpportunityForm({ ...opportunityForm, lost_reason: e.target.value })}
-                    placeholder="Örn: Fiyat yüksek bulundu"
+                    placeholder={t("customers.opportunityDialog.lostReasonPlaceholder")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Rakip Firma</Label>
+                  <Label>{t("customers.opportunityDialog.competitorLabel")}</Label>
                   <Input
                     value={opportunityForm.competitor}
                     onChange={(e) => setOpportunityForm({ ...opportunityForm, competitor: e.target.value })}
-                    placeholder="Örn: ABC Rakip A.Ş."
+                    placeholder={t("customers.opportunityDialog.competitorPlaceholder")}
                   />
                 </div>
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsOpportunityDialogOpen(false)} disabled={isOpportunitySaving}>İptal</Button>
+            <Button variant="ghost" onClick={() => setIsOpportunityDialogOpen(false)} disabled={isOpportunitySaving}>{t("common.cancel")}</Button>
             <Button variant="primary" onClick={handleSaveOpportunity} disabled={isOpportunitySaving || !opportunityForm.title.trim()}>
-              {isOpportunitySaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Kaydediliyor...</> : "Kaydet"}
+              {isOpportunitySaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("customers.saving")}</> : t("customers.save")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1578,14 +1598,14 @@ export function CustomerDetailClient({
       <Dialog open={isDocumentDialogOpen} onOpenChange={setIsDocumentDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Doküman Yükle</DialogTitle>
+            <DialogTitle>{t("customers.documentDialog.title")}</DialogTitle>
             <DialogDescription>
-              {customer.company_name} firmasına bir dosya ekleyin (maks. 20 MB).
+              {customer.company_name}{t("customers.documentDialog.descriptionSuffix")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 px-5 py-4 overflow-y-auto">
             <div className="space-y-2">
-              <Label>Dosya <span className="text-red-500">*</span></Label>
+              <Label>{t("customers.documentDialog.fileLabel")} <span className="text-red-500">*</span></Label>
               <input
                 type="file"
                 onChange={(e) => setPendingFile(e.target.files?.[0] || null)}
@@ -1597,9 +1617,9 @@ export function CustomerDetailClient({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsDocumentDialogOpen(false)} disabled={isDocumentUploading}>İptal</Button>
+            <Button variant="ghost" onClick={() => setIsDocumentDialogOpen(false)} disabled={isDocumentUploading}>{t("common.cancel")}</Button>
             <Button variant="primary" onClick={handleUploadDocument} disabled={isDocumentUploading || !pendingFile}>
-              {isDocumentUploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Yükleniyor...</> : "Yükle"}
+              {isDocumentUploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("customers.documentDialog.uploading")}</> : t("customers.documentDialog.upload")}
             </Button>
           </DialogFooter>
         </DialogContent>

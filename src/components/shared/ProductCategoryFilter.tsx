@@ -2,12 +2,14 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { SelectNative } from "@/components/ui/select-native";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export function ProductCategoryFilter({
   categories,
 }: {
   categories: { id: string; name: string }[];
 }) {
+  const { t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
   const current = searchParams.get("category") || "";
@@ -28,7 +30,7 @@ export function ProductCategoryFilter({
       onChange={(e) => handleChange(e.target.value)}
       className="w-full sm:w-56"
     >
-      <option value="">Tüm Kategoriler</option>
+      <option value="">{t("categoryFilter.allCategories")}</option>
       {categories.map((c) => (
         <option key={c.id} value={c.id}>
           {c.name}

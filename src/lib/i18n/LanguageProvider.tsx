@@ -41,6 +41,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // <html lang> özniteliği dil ile senkron değilse, CSS text-transform:
+  // uppercase İngilizce metinlere Türkçe büyük harf kuralını uygular
+  // (örn. "description" -> "DESCRİPTİON", noktalı büyük İ). Dil değiştikçe
+  // güncelleyerek bu ve benzeri locale-duyarlı davranışları düzeltiyoruz.
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
   const t = useCallback((key: DictionaryKey) => dictionary[lang][key], [lang]);
 
   return (

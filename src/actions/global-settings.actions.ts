@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { getErrorMessage } from "@/lib/utils";
+import { getCurrentProfile } from "@/lib/auth";
 
 export async function updateGlobalSettingsAction(data: {
   company_name: string;
@@ -15,24 +16,21 @@ export async function updateGlobalSettingsAction(data: {
   quote_followup_days: number;
 }) {
   try {
-    const supabase = await createClient();
-
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) {
+    const profile = await getCurrentProfile();
+    if (!profile) {
       return { success: false, error: "Oturum bulunamadı." };
     }
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.user.id)
-      .single();
-
-    if (profile?.role !== "admin") {
+    if (profile.role !== "admin") {
       return { success: false, error: "Admin yetkisi gereklidir." };
     }
+    const supabase = await createClient();
+    const { organizationId } = profile;
 
-    const { data: existing } = await supabase.from("global_settings").select("id").limit(1);
+    const { data: existing } = await supabase
+      .from("global_settings")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .limit(1);
 
     if (existing && existing.length > 0) {
       const { error } = await supabase
@@ -61,6 +59,7 @@ export async function updateGlobalSettingsAction(data: {
         quote_footer_text: data.quote_footer_text,
         discount_approval_threshold: data.discount_approval_threshold,
         quote_followup_days: data.quote_followup_days,
+        organization_id: organizationId,
       });
 
       if (error) throw error;

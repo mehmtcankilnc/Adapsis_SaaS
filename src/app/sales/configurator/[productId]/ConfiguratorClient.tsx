@@ -36,6 +36,7 @@ import { createQuoteAction } from "@/actions/quote.actions";
 import { createCustomerAction } from "@/actions/customer.actions";
 import { createTemplateAction, deleteTemplateAction } from "@/actions/quote-template.actions";
 import { configurationToSelections } from "@/lib/quote-config";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import type { Customer, InventoryItem, PriceEffect, Product, ProductVariant, QuoteTemplate } from "@/types/product.types";
 
 type ConfiguratorTemplate = Pick<QuoteTemplate, "id" | "name" | "configuration" | "created_by" | "creator_name">;
@@ -77,6 +78,7 @@ export default function ConfiguratorClient({
   templates?: ConfiguratorTemplate[];
   currentUserId?: string;
 }) {
+  const { t, lang } = useLanguage();
   const init = useSalesConfiguratorStore((s) => s.initialize);
   const initWithPriorSelections = useSalesConfiguratorStore((s) => s.initializeWithPriorSelections);
   const variants = useSalesConfiguratorStore((s) => s.variants);
@@ -276,7 +278,7 @@ export default function ConfiguratorClient({
     );
     setHighlightedVariantIds(new Set(template.configuration.map((c) => c.variant_id)));
     window.setTimeout(() => setHighlightedVariantIds(new Set()), 1200);
-    toast.success(`"${template.name}" şablonu uygulandı`);
+    toast.success(`"${template.name}" ${t("sales.configurator.templateAppliedToast")}`);
   };
 
   // Şablon Olarak Kaydetme
@@ -292,11 +294,11 @@ export default function ConfiguratorClient({
     setIsSavingTemplate(false);
     if (res.success && res.template) {
       setTemplates([res.template, ...templates]);
-      toast.success("Şablon kaydedildi");
+      toast.success(t("sales.configurator.templateSavedToast"));
       setIsSaveTemplateOpen(false);
       setNewTemplateName("");
     } else {
-      toast.error("Şablon kaydedilemedi", { description: res.error });
+      toast.error(t("sales.configurator.templateSaveFailedToast"), { description: res.error });
     }
   };
 
@@ -304,10 +306,10 @@ export default function ConfiguratorClient({
   const handleDeleteTemplate = async (templateId: string) => {
     const res = await deleteTemplateAction(templateId);
     if (res.success) {
-      setTemplates(templates.filter((t) => t.id !== templateId));
-      toast.success("Şablon silindi");
+      setTemplates(templates.filter((tmpl) => tmpl.id !== templateId));
+      toast.success(t("sales.configurator.templateDeletedToast"));
     } else {
-      toast.error("Şablon silinemedi", { description: res.error });
+      toast.error(t("sales.configurator.templateDeleteFailedToast"), { description: res.error });
     }
   };
 
@@ -330,9 +332,9 @@ export default function ConfiguratorClient({
     setIsSubmittingQuote(false);
 
     if (!result.success) {
-      toast.error("Teklif oluşturulamadı", { description: result.error });
+      toast.error(t("sales.configurator.quoteCreateFailedToast"), { description: result.error });
     } else {
-      toast.success("Teklif başarıyla sisteme kaydedildi");
+      toast.success(t("sales.configurator.quoteCreatedToast"));
       setIsDialogOpen(false);
       setSelectedCustomer(null);
       setCustomerContact("");
@@ -359,7 +361,7 @@ export default function ConfiguratorClient({
       {/* Üst Bilgi */}
       <div className="mb-10">
         <div className="flex items-center space-x-2 text-sm text-slate-500 mb-2 font-medium">
-          <span className="text-brand-600">Satış Konfigüratörü</span>
+          <span className="text-brand-600">{t("sales.configurator.breadcrumbLabel")}</span>
           <span>/</span>
           <span>{product.sku || "N/A"}</span>
         </div>
@@ -374,9 +376,7 @@ export default function ConfiguratorClient({
         {hasInsufficientStockRecipe && (
           <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm font-medium text-red-700 flex items-center max-w-2xl">
             <AlertTriangle className="h-4 w-4 mr-2 shrink-0" />
-            Bu ürünün üretimi için gereken ham madde/parça stoğu yetersiz.
-            Seçtiğiniz varyasyondan bağımsız olarak bu ürün için teklif
-            oluşturulamaz.
+            {t("sales.configurator.insufficientStockWarning")}
           </div>
         )}
       </div>
@@ -386,23 +386,23 @@ export default function ConfiguratorClient({
           neyi seçtiğini görsün. */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-slate-700">Kayıtlı Şablonlar</h3>
+          <h3 className="text-sm font-semibold text-slate-700">{t("sales.configurator.savedTemplatesTitle")}</h3>
           <Dialog open={isSaveTemplateOpen} onOpenChange={setIsSaveTemplateOpen}>
             <DialogTrigger asChild>
               <Button type="button" variant="outline" size="sm">
-                <BookmarkPlus className="mr-2 h-4 w-4" /> Şablon Olarak Kaydet
+                <BookmarkPlus className="mr-2 h-4 w-4" /> {t("sales.configurator.saveTemplateButton")}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[460px] p-6 grid gap-4">
               <DialogHeader>
-                <DialogTitle>Şablon Olarak Kaydet</DialogTitle>
+                <DialogTitle>{t("sales.configurator.saveTemplateDialogTitle")}</DialogTitle>
                 <DialogDescription>
-                  Şu anki seçimleri isimlendirip kaydedin; ekip bu şablonu daha sonra yeni tekliflerde kullanabilir.
+                  {t("sales.configurator.saveTemplateDialogDescription")}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4">
                 <div className="flex flex-col gap-2">
-                  <Label>Kaydedilecek Seçimler</Label>
+                  <Label>{t("sales.configurator.selectionsToSaveLabel")}</Label>
                   {variants.length > 0 ? (
                     <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-1.5 max-h-40 overflow-y-auto">
                       {variants.map((v) => {
@@ -417,29 +417,29 @@ export default function ConfiguratorClient({
                       })}
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-400">Bu ürünün seçilebilir varyasyonu yok.</p>
+                    <p className="text-xs text-slate-400">{t("sales.configurator.noVariantsForTemplate")}</p>
                   )}
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label>Şablon Adı</Label>
+                  <Label>{t("sales.configurator.templateNameLabel")}</Label>
                   <Input
                     value={newTemplateName}
                     onChange={(e) => setNewTemplateName(e.target.value)}
-                    placeholder="Örn: Standart Paket"
+                    placeholder={t("sales.configurator.templateNamePlaceholder")}
                     autoFocus
                   />
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setIsSaveTemplateOpen(false)}>
-                  İptal
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   variant="primary"
                   onClick={handleSaveTemplate}
                   disabled={isSavingTemplate || !newTemplateName.trim()}
                 >
-                  {isSavingTemplate ? "Kaydediliyor..." : "Kaydet"}
+                  {isSavingTemplate ? t("sales.configurator.savingEllipsis") : t("sales.configurator.saveButton")}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -448,32 +448,36 @@ export default function ConfiguratorClient({
 
         {templates.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {templates.map((t) => {
-              const summary = summarizeConfiguration(t.configuration, variants);
+            {templates.map((tpl) => {
+              const summary = summarizeConfiguration(tpl.configuration, variants);
               return (
                 <div
-                  key={t.id}
+                  key={tpl.id}
                   className="group relative rounded-xl border border-slate-200 bg-white hover:border-brand-300 hover:shadow-sm transition-colors"
                 >
                   <button
                     type="button"
-                    onClick={() => handleApplyTemplate(t.id)}
+                    onClick={() => handleApplyTemplate(tpl.id)}
                     className="w-full text-left p-4"
                   >
-                    <div className="font-semibold text-sm text-slate-800 pr-6 truncate">{t.name}</div>
+                    <div className="font-semibold text-sm text-slate-800 pr-6 truncate">{tpl.name}</div>
                     <p className="mt-1 text-xs text-slate-500 line-clamp-2 min-h-[2rem]">
-                      {summary || "Varsayılan seçimler"}
+                      {summary || t("sales.configurator.defaultSelectionsFallback")}
                     </p>
-                    {t.creator_name && (
-                      <p className="mt-2 text-[11px] text-slate-400">{t.creator_name} tarafından</p>
+                    {tpl.creator_name && (
+                      <p className="mt-2 text-[11px] text-slate-400">
+                        {lang === "en"
+                          ? `${t("sales.configurator.byCreatorSuffix")} ${tpl.creator_name}`
+                          : `${tpl.creator_name} ${t("sales.configurator.byCreatorSuffix")}`}
+                      </p>
                     )}
                   </button>
-                  {t.created_by === currentUserId && (
+                  {tpl.created_by === currentUserId && (
                     <button
                       type="button"
-                      onClick={() => handleDeleteTemplate(t.id)}
+                      onClick={() => handleDeleteTemplate(tpl.id)}
                       className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity text-slate-400 hover:text-red-600 p-1"
-                      title="Şablonu Sil"
+                      title={t("sales.configurator.deleteTemplateTooltip")}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -484,7 +488,7 @@ export default function ConfiguratorClient({
           </div>
         ) : (
           <div className="p-5 border border-dashed border-slate-200 rounded-xl text-sm text-slate-400 text-center bg-white">
-            Bu ürün için henüz kayıtlı şablon yok. Seçimlerinizi yapıp &quot;Şablon Olarak Kaydet&quot; ile ekibiniz için ilk şablonu oluşturun.
+            {t("sales.configurator.noTemplatesEmptyState")}
           </div>
         )}
       </div>
@@ -494,7 +498,7 @@ export default function ConfiguratorClient({
         <div className="flex-1 space-y-10">
           {variants.length === 0 ? (
             <div className="p-8 text-center text-slate-500 bg-white border border-slate-200 rounded-xl">
-              Bu ürüne ait dinamik varyasyon bulunmuyor.
+              {t("sales.configurator.noVariantsMessage")}
             </div>
           ) : (
             variants.map((variant, index) => (
@@ -576,7 +580,7 @@ export default function ConfiguratorClient({
                               </span>
                             ) : (
                               <span className="text-slate-400 text-xs">
-                                Standard
+                                {t("sales.configurator.standardBadge")}
                               </span>
                             )}
                           </div>
@@ -587,18 +591,16 @@ export default function ConfiguratorClient({
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div className="mt-auto text-[11px] font-semibold text-red-600 flex items-center bg-red-50 p-1.5 rounded border border-red-100 uppercase tracking-widest cursor-help">
-                                YETERSİZ STOK ({Math.max(availableStock, 0)} Kullanılabilir)
+                                {t("sales.configurator.insufficientStockLabel")} ({Math.max(availableStock, 0)} {t("sales.configurator.availableSuffix")})
                               </div>
                             </TooltipTrigger>
                             <TooltipContent>
-                              Bu seçenek için {option.required_amount || 1} adet
-                              gerekiyor, envanterde {Math.max(availableStock, 0)} adet
-                              kullanılabilir stok var.
+                              {t("sales.configurator.stockTooltipPart1")} {option.required_amount || 1} {t("sales.configurator.stockTooltipPart2")} {Math.max(availableStock, 0)} {t("sales.configurator.stockTooltipPart3")}
                             </TooltipContent>
                           </Tooltip>
                         ) : stockRef ? (
                           <div className="mt-auto text-[11px] font-semibold text-emerald-600 flex items-center uppercase tracking-widest opacity-60">
-                            Stok Yeterli
+                            {t("sales.configurator.stockSufficientLabel")}
                           </div>
                         ) : null}
                       </div>
@@ -619,7 +621,7 @@ export default function ConfiguratorClient({
                 <div className="bg-slate-900 p-6 text-white rounded-t-xl">
                   <div className="flex items-center">
                     <Calculator className="h-6 w-6 text-brand-400 mr-3" />
-                    <h2 className="text-lg font-semibold">Teklif Özeti</h2>
+                    <h2 className="text-lg font-semibold">{t("sales.configurator.quoteSummaryTitle")}</h2>
                   </div>
                 </div>
 
@@ -627,7 +629,7 @@ export default function ConfiguratorClient({
                   {/* Başlangıç Fiyatı (Converted) */}
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-500 font-medium">
-                      Taban Fiyat
+                      {t("sales.configurator.basePriceLabel")}
                     </span>
                     <span className="font-semibold text-slate-800">
                       {formatPrice(convertedBase)}
@@ -666,15 +668,13 @@ export default function ConfiguratorClient({
                   {/* İskonto Alanı */}
                   <div className="border-t border-slate-200 pt-4">
                     <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                      İndirim Uygula
+                      {t("sales.configurator.discountLabel")}
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Info tabIndex={0} className="h-3.5 w-3.5 text-slate-400 cursor-help normal-case outline-none" />
                         </TooltipTrigger>
                         <TooltipContent>
-                          %{discountApprovalThreshold}&apos;e kadar iskontolar doğrudan
-                          uygulanır. Üzerindeki iskontolar admin onayına gönderilir ve
-                          teklif onaylanana kadar &quot;Onay Bekliyor&quot; durumunda kalır.
+                          %{discountApprovalThreshold}{t("sales.configurator.discountTooltipAfterThreshold")} &quot;{t("sales.configurator.discountTooltipPendingStatus")}&quot; {t("sales.configurator.discountTooltipSuffix")}
                         </TooltipContent>
                       </Tooltip>
                     </label>
@@ -703,15 +703,14 @@ export default function ConfiguratorClient({
                       <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
                         <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                         <p className="text-[11px] text-amber-700 font-medium leading-snug">
-                          %{discountApprovalThreshold} üzeri iskontolar admin onayı
-                          gerektirir. Bu teklif onay sürecine alınacaktır.
+                          %{discountApprovalThreshold} {t("sales.configurator.discountApprovalWarning")}
                         </p>
                       </div>
                     )}
                     {discountPct > 0 && (
                       <div className="mt-2 flex justify-between text-xs">
                         <span className="text-red-500 font-medium">
-                          İskonto Tutarı:
+                          {t("sales.configurator.discountAmountLabel")}
                         </span>
                         <span className="text-red-600 font-bold">
                           -{formatPrice(discountAmount)}
@@ -723,7 +722,7 @@ export default function ConfiguratorClient({
                   <div className="border-t border-slate-200 pt-6">
                     <div className="flex justify-between items-center mb-1 gap-3">
                       <span className="text-sm font-semibold text-slate-900 shrink-0">
-                        Toplam Fiyat
+                        {t("sales.configurator.totalPriceLabel")}
                       </span>
                       <div className="flex items-center gap-2 min-w-0">
                         <span
@@ -756,8 +755,8 @@ export default function ConfiguratorClient({
                     </div>
                     <p className="text-xs text-slate-500 text-right">
                       {isRatesLoading
-                        ? "Kurlar güncelleniyor..."
-                        : `Canlı döviz kuru ile hesaplanmıştır`}
+                        ? t("sales.configurator.ratesUpdatingText")
+                        : t("sales.configurator.liveRateCalculatedText")}
                     </p>
                   </div>
 
@@ -768,31 +767,28 @@ export default function ConfiguratorClient({
                         className="w-full h-12 text-base mt-4 shadow-md"
                       >
                         <ShoppingCart className="mr-2 h-5 w-5" />
-                        Teklif Oluştur
+                        {t("sales.configurator.createQuoteButton")}
                       </Button>
                     </DialogTrigger>
 
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Yeni Teklif Oluştur</DialogTitle>
+                        <DialogTitle>{t("sales.configurator.newQuoteDialogTitle")}</DialogTitle>
                         <DialogDescription>
-                          Müşteri bilgilerini girerek bu dinamik konfigürasyonu,
-                          resmi bir teklif kaydı olarak veritabanına ekleyin.
+                          {t("sales.configurator.newQuoteDialogDescription")}
                         </DialogDescription>
                       </DialogHeader>
                       <div className="p-6 space-y-5">
                         {hasOutOfStockSelection && (
                           <div className="p-3 bg-red-50 text-red-700 rounded-md text-sm font-medium border border-red-200 flex items-start gap-2">
                             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-                            Seçilen konfigürasyonda stokta yeterli miktarda
-                            bulunmayan bir kalem var. Teklif oluşturmadan önce
-                            lütfen seçimlerinizi güncelleyin.
+                            {t("sales.configurator.outOfStockDialogWarning")}
                           </div>
                         )}
 
                         <div className="space-y-2">
                           <Label>
-                            Müşteri / Firma Adı{" "}
+                            {t("sales.configurator.customerNameLabel")}{" "}
                             <span className="text-red-500">*</span>
                           </Label>
                           <div className="flex items-center gap-2">
@@ -801,7 +797,7 @@ export default function ConfiguratorClient({
                               onChange={(e) => setSelectedCustomer(e.target.value)}
                               className="flex flex-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                              <option value="">-- Müşteri Seçin --</option>
+                              <option value="">{t("sales.configurator.selectCustomerPlaceholder")}</option>
                               {customers.map((c) => (
                                 <option key={c.id} value={c.id}>
                                   {c.company_name}
@@ -824,17 +820,17 @@ export default function ConfiguratorClient({
                               </DialogTrigger>
                               <DialogContent className="sm:max-w-[425px] p-6 grid gap-4">
                                 <DialogHeader>
-                                  <DialogTitle>Hızlı Müşteri Ekle</DialogTitle>
+                                  <DialogTitle>{t("sales.configurator.quickAddCustomerDialogTitle")}</DialogTitle>
                                 </DialogHeader>
                                 <div className="grid gap-4 py-4">
                                   <div className="flex flex-col gap-2">
-                                    <Label>Firma Adı</Label>
+                                    <Label>{t("sales.configurator.companyNameLabel")}</Label>
                                     <Input
                                       value={newCustomerName}
                                       onChange={(e) =>
                                         setNewCustomerName(e.target.value)
                                       }
-                                      placeholder="Örn: XYZ A.Ş."
+                                      placeholder={t("sales.configurator.companyNamePlaceholder")}
                                     />
                                   </div>
                                 </div>
@@ -843,7 +839,7 @@ export default function ConfiguratorClient({
                                     variant="ghost"
                                     onClick={() => setIsQuickAddOpen(false)}
                                   >
-                                    İptal
+                                    {t("common.cancel")}
                                   </Button>
                                   <Button
                                     variant="primary"
@@ -854,8 +850,8 @@ export default function ConfiguratorClient({
                                     }
                                   >
                                     {isAddingCustomer
-                                      ? "Ekleniyor..."
-                                      : "Ekle ve Seç"}
+                                      ? t("sales.configurator.addingEllipsis")
+                                      : t("sales.configurator.addAndSelectButton")}
                                   </Button>
                                 </DialogFooter>
                               </DialogContent>
@@ -863,17 +859,17 @@ export default function ConfiguratorClient({
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label>İletişim Kişisi (Opsiyonel)</Label>
+                          <Label>{t("sales.configurator.contactPersonLabel")}</Label>
                           <Input
                             value={customerContact}
                             onChange={(e) => setCustomerContact(e.target.value)}
-                            placeholder="Örn: Ahmet Yılmaz - Satın Alma"
+                            placeholder={t("sales.configurator.contactPersonPlaceholder")}
                           />
                         </div>
 
                         <div className="mt-4 p-4 bg-slate-50 border border-slate-100 rounded-lg flex justify-between items-center gap-3">
                           <span className="text-sm font-medium text-slate-500 shrink-0">
-                            Teklif Tutarı:
+                            {t("sales.configurator.quoteAmountLabel")}
                           </span>
                           <span
                             className={`font-bold text-brand-600 tracking-tight text-right break-all ${getPriceFontClass(formatPrice(convertedTotal)) === "text-2xl" ? "text-lg" : "text-base"}`}
@@ -888,7 +884,7 @@ export default function ConfiguratorClient({
                           onClick={() => setIsDialogOpen(false)}
                           disabled={isSubmittingQuote}
                         >
-                          İptal
+                          {t("common.cancel")}
                         </Button>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -904,16 +900,16 @@ export default function ConfiguratorClient({
                             {isSubmittingQuote ? (
                               <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-                                Kaydediliyor...
+                                {t("sales.configurator.savingEllipsis")}
                               </>
                             ) : (
                               <>
-                                <Check className="mr-2 h-4 w-4" /> Teklifi Kaydet
+                                <Check className="mr-2 h-4 w-4" /> {t("sales.configurator.saveQuoteButton")}
                               </>
                             )}
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Ctrl / Cmd + Enter ile hızlı kaydet</TooltipContent>
+                          <TooltipContent>{t("sales.configurator.quickSaveTooltip")}</TooltipContent>
                         </Tooltip>
                       </DialogFooter>
                     </DialogContent>
@@ -925,8 +921,7 @@ export default function ConfiguratorClient({
             <div className="mt-6 flex items-start text-sm text-slate-500 bg-blue-50/50 p-4 rounded-lg border border-blue-100">
               <Info className="h-5 w-5 text-brand-500 mr-3 shrink-0" />
               <p>
-                Gerçek zamanlı TCMB bazlı kurlar kullanılmaktadır. Nakliye vb.
-                hizmetler Sipariş Ekranı&apos;nda eklenecektir.
+                {t("sales.configurator.exchangeRateFooterNote")}
               </p>
             </div>
           </div>

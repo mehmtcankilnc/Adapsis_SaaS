@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { getErrorMessage } from "@/lib/utils";
+import { getCurrentProfile } from "@/lib/auth";
 import type { OpportunityStage } from "@/types/product.types";
 
 export async function getOpportunitiesByCustomerAction(customerId: string) {
@@ -40,8 +41,8 @@ export async function createOpportunityAction(data: {
   try {
     const supabase = await createClient();
 
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) {
+    const profile = await getCurrentProfile();
+    if (!profile) {
       return { success: false, error: "Oturum bulunamadı." };
     }
 
@@ -71,7 +72,8 @@ export async function createOpportunityAction(data: {
         // updateOpportunityAction'daki mantıkla tutarlı: fırsat doğrudan
         // won/lost aşamasıyla oluşturulursa kapanış tarihi de o an atanır.
         closed_at: stage === "won" || stage === "lost" ? new Date().toISOString() : null,
-        created_by: user.user.id,
+        created_by: profile.user.id,
+        organization_id: profile.organizationId,
       })
       .select()
       .single();

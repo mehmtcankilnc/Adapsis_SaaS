@@ -29,6 +29,7 @@ import {
   updateProductAction,
 } from "@/actions/product-edit.actions";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type PriceEffectType = "fixed" | "multiplier" | "percentage";
 
@@ -60,6 +61,7 @@ export default function EditProductPage() {
   const router = useRouter();
   const params = useParams();
   const productId = params.productId as string;
+  const { t } = useLanguage();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -118,7 +120,7 @@ export default function EditProductPage() {
           );
         }
       } else {
-        setLoadErrorMsg("Ürün bulunamadı veya yetki hatası.");
+        setLoadErrorMsg(t("admin.products.loadErrorMessage"));
       }
 
       setIsLoading(false);
@@ -203,11 +205,11 @@ export default function EditProductPage() {
     setIsSubmitting(false);
 
     if (!result.success) {
-      toast.error("Güncelleme başarısız oldu", {
+      toast.error(t("admin.products.updateFailedToast"), {
         description: result.error || undefined,
       });
     } else {
-      toast.success("Ürün güncellendi");
+      toast.success(t("admin.products.updatedToast"));
     }
   };
 
@@ -262,7 +264,7 @@ export default function EditProductPage() {
               </Link>
               <div className="min-w-0">
                 <h1 className="text-xl font-semibold text-slate-900 truncate">
-                  Ürünü Düzenle
+                  {t("admin.products.editPageTitle")}
                 </h1>
                 <p className="text-xs text-slate-500 truncate">{name || "—"}</p>
               </div>
@@ -273,7 +275,7 @@ export default function EditProductPage() {
                 variant="ghost"
                 onClick={() => router.push("/admin/products")}
               >
-                İptal
+                {t("common.cancel")}
               </Button>
               <Button
                 variant="primary"
@@ -283,11 +285,11 @@ export default function EditProductPage() {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-                    Kaydediliyor...
+                    {t("admin.products.savingButton")}
                   </>
                 ) : (
                   <>
-                    <Save className="mr-2 h-4 w-4" /> Güncelle
+                    <Save className="mr-2 h-4 w-4" /> {t("admin.products.updateButton")}
                   </>
                 )}
               </Button>
@@ -308,10 +310,10 @@ export default function EditProductPage() {
           <div className="lg:col-span-4 space-y-6">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">
-                Temel Bilgiler
+                {t("admin.products.basicInfoTitle")}
               </h2>
               <p className="text-sm text-slate-500 mt-1">
-                Ürün adı, fiyatı ve kategori bilgilerini güncelleyin.
+                {t("admin.products.basicInfoDescriptionEdit")}
               </p>
             </div>
 
@@ -319,7 +321,7 @@ export default function EditProductPage() {
               <CardContent className="pt-6 space-y-5">
                 <div className="space-y-2">
                   <Label>
-                    Ürün Kategorisi <span className="text-red-500">*</span>
+                    {t("admin.products.categoryLabel")} <span className="text-red-500">*</span>
                   </Label>
                   <CategorySelectField
                     categories={categories}
@@ -331,27 +333,27 @@ export default function EditProductPage() {
 
                 <div className="space-y-2">
                   <Label>
-                    Ürün Adı <span className="text-red-500">*</span>
+                    {t("admin.products.nameLabel")} <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Örn: Endüstriyel Pompa Seti"
+                    placeholder={t("admin.products.namePlaceholder")}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Stok Kodu (SKU)</Label>
+                  <Label>{t("admin.products.skuLabel")}</Label>
                   <Input
                     value={sku}
                     onChange={(e) => setSku(e.target.value)}
-                    placeholder="URN-0001"
+                    placeholder={t("admin.products.skuPlaceholder")}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label>
-                    Taban Fiyat <span className="text-red-500">*</span>
+                    {t("admin.products.basePriceLabel")} <span className="text-red-500">*</span>
                   </Label>
                   <div className="flex gap-3">
                     <Input
@@ -377,12 +379,12 @@ export default function EditProductPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Ürün Açıklaması</Label>
+                  <Label>{t("admin.products.descriptionLabel")}</Label>
                   <textarea
                     className="w-full min-h-[100px] rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition-colors focus-visible:outline-none focus-visible:border-brand-500 focus-visible:ring-1 focus-visible:ring-brand-500"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Ürün hakkında kısa bilgi..."
+                    placeholder={t("admin.products.descriptionPlaceholder")}
                   />
                 </div>
 
@@ -394,7 +396,7 @@ export default function EditProductPage() {
                     className="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500"
                   />
                   <Label className="text-sm text-slate-600 cursor-pointer">
-                    Ürün Aktif (Satışa açık)
+                    {t("admin.products.activeLabel")}
                   </Label>
                 </div>
               </CardContent>
@@ -406,10 +408,10 @@ export default function EditProductPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">
-                  Ürün Varyasyonları
+                  {t("admin.products.variantsTitle")}
                 </h2>
                 <p className="text-sm text-slate-500 mt-1">
-                  Müşterinin seçebileceği parametreleri düzenleyin.
+                  {t("admin.products.variantsDescriptionEdit")}
                 </p>
               </div>
               <Button
@@ -417,7 +419,7 @@ export default function EditProductPage() {
                 onClick={addVariantGroup}
                 className="shrink-0 bg-white"
               >
-                <Plus className="mr-2 h-4 w-4" /> Grup Ekle
+                <Plus className="mr-2 h-4 w-4" /> {t("admin.products.addGroupButton")}
               </Button>
             </div>
 
@@ -437,7 +439,7 @@ export default function EditProductPage() {
                               group_name: e.target.value,
                             })
                           }
-                          placeholder="Parametre Grubu (Örn: Güç Seviyesi)"
+                          placeholder={t("admin.products.groupNamePlaceholder")}
                           className="h-9 font-medium"
                         />
                       </div>
@@ -456,11 +458,11 @@ export default function EditProductPage() {
                     <table className="w-full text-left text-sm whitespace-nowrap">
                       <thead className="bg-white border-b border-slate-100 text-slate-500">
                         <tr>
-                          <th className="px-5 py-3 font-medium">Seçenek Adı</th>
-                          <th className="px-5 py-3 font-medium">Sistem Kodu</th>
-                          <th className="px-5 py-3 font-medium">Fiyat Etkisi</th>
-                          <th className="px-5 py-3 font-medium">Miktar</th>
-                          <th className="px-5 py-3 font-medium text-center">Varsayılan</th>
+                          <th className="px-5 py-3 font-medium">{t("admin.products.columnOptionName")}</th>
+                          <th className="px-5 py-3 font-medium">{t("admin.products.columnSystemCode")}</th>
+                          <th className="px-5 py-3 font-medium">{t("admin.products.columnPriceEffect")}</th>
+                          <th className="px-5 py-3 font-medium">{t("admin.products.columnAmount")}</th>
+                          <th className="px-5 py-3 font-medium text-center">{t("admin.products.columnDefault")}</th>
                           <th className="px-5 py-3 w-10"></th>
                         </tr>
                       </thead>
@@ -478,7 +480,7 @@ export default function EditProductPage() {
                                     label: e.target.value,
                                   })
                                 }
-                                placeholder="Örn: Büyük Boy"
+                                placeholder={t("admin.products.optionLabelPlaceholder")}
                                 className="h-9 w-full min-w-[120px]"
                               />
                             </td>
@@ -490,7 +492,7 @@ export default function EditProductPage() {
                                     value: e.target.value,
                                   })
                                 }
-                                placeholder="buyuk_boy"
+                                placeholder={t("admin.products.optionValuePlaceholder")}
                                 className="h-9 w-full min-w-[100px] text-slate-500"
                               />
                             </td>
@@ -507,9 +509,9 @@ export default function EditProductPage() {
                                 }
                                 className="h-9 w-[130px]"
                               >
-                                <option value="fixed">Sabit (+)</option>
-                                <option value="multiplier">Çarpan (x)</option>
-                                <option value="percentage">Yüzde (%)</option>
+                                <option value="fixed">{t("admin.products.priceEffectFixed")}</option>
+                                <option value="multiplier">{t("admin.products.priceEffectMultiplier")}</option>
+                                <option value="percentage">{t("admin.products.priceEffectPercentage")}</option>
                               </SelectNative>
                             </td>
                             <td className="px-5 py-3 align-top">
@@ -531,7 +533,7 @@ export default function EditProductPage() {
                             <td className="px-5 py-3 text-center align-middle">
                               <div className="flex justify-center">
                                 <input
-                                  title="Varsayılan"
+                                  title={t("admin.products.columnDefault")}
                                   type="radio"
                                   name={`default_${groupIndex}`}
                                   checked={option.is_default}
@@ -569,7 +571,7 @@ export default function EditProductPage() {
                       onClick={() => addOption(groupIndex)}
                       className="text-brand-600 hover:text-brand-700 hover:bg-brand-50 w-full justify-start text-xs rounded-md"
                     >
-                      <Plus className="mr-2 h-3 w-3" /> Seçenek Ekle
+                      <Plus className="mr-2 h-3 w-3" /> {t("admin.products.addOptionButton")}
                     </Button>
                   </div>
                 </Card>
@@ -579,14 +581,13 @@ export default function EditProductPage() {
                 <div className="border-2 border-dashed border-slate-200 rounded-xl py-16 px-6 text-center bg-white">
                   <Layers className="h-10 w-10 text-slate-300 mx-auto mb-4" />
                   <h3 className="text-sm font-semibold text-slate-900 mb-1">
-                    Henüz Parametre Eklenmedi
+                    {t("admin.products.noVariantsTitle")}
                   </h3>
                   <p className="text-sm text-slate-500 max-w-sm mx-auto mb-6">
-                    Müşterilerinizin ürün yapılandırırken seçeceği seçenekleri
-                    eklemeye başlamak için aşağıya tıklayın.
+                    {t("admin.products.noVariantsDescription")}
                   </p>
                   <Button variant="secondary" onClick={addVariantGroup}>
-                    <Plus className="mr-2 h-4 w-4" /> Parametre Ekle
+                    <Plus className="mr-2 h-4 w-4" /> {t("admin.products.addParameterButton")}
                   </Button>
                 </div>
               )}

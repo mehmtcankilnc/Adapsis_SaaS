@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Search, Layers } from "lucide-react";
 import InventoryTableClient from "./InventoryTableClient";
 import AddInventoryButton from "./AddInventoryButton";
+import { T } from "@/components/layout/T";
 
 export const dynamic = "force-dynamic";
 
@@ -27,11 +28,10 @@ export default async function InventoryPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between h-auto py-5 sm:h-20 sm:py-0 gap-4">
             <div>
               <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center">
-                <Layers className="h-6 w-6 text-brand-600 mr-2" /> Stok ve Ham
-                Madde Yönetimi
+                <Layers className="h-6 w-6 text-brand-600 mr-2" /> <T k="admin.inventory.pageTitle" />
               </h1>
               <p className="text-sm text-slate-500 mt-1">
-                Üretime girecek parçaların eş zamanlı envanter durumu.
+                <T k="admin.inventory.pageDescription" />
               </p>
             </div>
 

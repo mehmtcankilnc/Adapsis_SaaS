@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Printer, Check, X, Loader2, ShieldAlert, ShieldCheck, Copy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { updateQuoteStatusAction, approveDiscountAction } from '@/actions/quote.actions'
+import { useLanguage } from '@/lib/i18n/LanguageProvider'
 
 export default function QuoteActions({
   quoteId,
@@ -21,6 +22,7 @@ export default function QuoteActions({
   productId: string,
 }) {
   const router = useRouter()
+  const { t } = useLanguage()
   const [isUpdating, setIsUpdating] = useState(false)
   const isAdmin = role === 'admin'
   const isPendingAdminApproval = status === 'pending_admin_approval'
@@ -30,10 +32,10 @@ export default function QuoteActions({
     const res = await updateQuoteStatusAction(quoteId, newStatus)
     setIsUpdating(false)
     if (res.success) {
-      toast.success(newStatus === 'accepted' ? 'Teklif onaylandı' : 'Teklif reddedildi')
+      toast.success(newStatus === 'accepted' ? t('sales.quotes.actions.quoteApproved') : t('sales.quotes.actions.quoteRejected'))
       router.refresh()
     } else {
-      toast.error('Durum güncellenemedi', { description: res.error })
+      toast.error(t('sales.quotes.actions.statusUpdateFailed'), { description: res.error })
     }
   }
 
@@ -42,10 +44,10 @@ export default function QuoteActions({
     const res = await approveDiscountAction(quoteId, action)
     setIsUpdating(false)
     if (res.success) {
-      toast.success(action === 'approve' ? 'İskonto onaylandı' : 'İskonto reddedildi')
+      toast.success(action === 'approve' ? t('sales.quotes.actions.discountApproved') : t('sales.quotes.actions.discountRejected'))
       router.refresh()
     } else {
-      toast.error('İskonto işlemi başarısız', { description: res.error })
+      toast.error(t('sales.quotes.actions.discountActionFailed'), { description: res.error })
     }
   }
 
@@ -57,10 +59,10 @@ export default function QuoteActions({
       {/* Yazdır butonu */}
       <Button
         variant="outline"
-        onClick={() => canPrint ? window.print() : toast.warning('İskonto onayı bekleyen teklifler için PDF çıktısı alınamaz.')}
+        onClick={() => canPrint ? window.print() : toast.warning(t('sales.quotes.actions.printDisabledWarning'))}
         className={`bg-white border-slate-300 text-slate-700 ${!canPrint ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
-        <Printer className="mr-2 h-4 w-4" /> Yazdır / PDF
+        <Printer className="mr-2 h-4 w-4" /> {t('sales.quotes.actions.print')}
       </Button>
 
       {/* Kopyala: aynı ürünün konfigüratörünü bu teklifin seçimleriyle önceden
@@ -71,7 +73,7 @@ export default function QuoteActions({
         onClick={() => router.push(`/sales/configurator/${productId}?fromQuote=${quoteId}`)}
         className="bg-white border-slate-300 text-slate-700"
       >
-        <Copy className="mr-2 h-4 w-4" /> Kopyala
+        <Copy className="mr-2 h-4 w-4" /> {t('sales.quotes.actions.duplicate')}
       </Button>
 
       {/* Admin: İskonto Onay/Red Butonları */}
@@ -84,9 +86,9 @@ export default function QuoteActions({
             className="bg-red-600 hover:bg-red-700"
           >
             {isUpdating ? (
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> İşleniyor...</>
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('sales.quotes.actions.processing')}</>
             ) : (
-              <><ShieldAlert className="mr-2 h-4 w-4" /> İskontoyu Reddet</>
+              <><ShieldAlert className="mr-2 h-4 w-4" /> {t('sales.quotes.actions.rejectDiscount')}</>
             )}
           </Button>
           <Button
@@ -96,9 +98,9 @@ export default function QuoteActions({
             disabled={isUpdating}
           >
             {isUpdating ? (
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> İşleniyor...</>
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('sales.quotes.actions.processing')}</>
             ) : (
-              <><ShieldCheck className="mr-2 h-4 w-4" /> İskontoyu Onayla (%{discountPercentage})</>
+              <><ShieldCheck className="mr-2 h-4 w-4" /> {`${t('sales.quotes.actions.approveDiscount')} (%${discountPercentage})`}</>
             )}
           </Button>
         </>
@@ -113,9 +115,9 @@ export default function QuoteActions({
             disabled={isUpdating}
           >
             {isUpdating ? (
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> İşleniyor...</>
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('sales.quotes.actions.processing')}</>
             ) : (
-              <><X className="mr-2 h-4 w-4" /> Reddet</>
+              <><X className="mr-2 h-4 w-4" /> {t('sales.quotes.actions.reject')}</>
             )}
           </Button>
           <Button
@@ -125,9 +127,9 @@ export default function QuoteActions({
             disabled={isUpdating}
           >
             {isUpdating ? (
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> İşleniyor...</>
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('sales.quotes.actions.processing')}</>
             ) : (
-              <><Check className="mr-2 h-4 w-4" /> Onayla</>
+              <><Check className="mr-2 h-4 w-4" /> {t('sales.quotes.actions.approve')}</>
             )}
           </Button>
         </>

@@ -6,15 +6,18 @@ import { Badge } from '@/components/ui/badge'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } from 'recharts'
 import { Target, TrendingUp, Trophy, XCircle, AlertCircle } from 'lucide-react'
 import { useGlobalStore } from '@/store/global-store'
+import { useLanguage } from '@/lib/i18n/LanguageProvider'
+import { localeFor } from '@/lib/i18n/format'
 import type { Opportunity, OpportunityStage } from '@/types/product.types'
+import type { DictionaryKey } from '@/lib/i18n/dictionary'
 
-const OPPORTUNITY_STAGE_MAP: Record<OpportunityStage, { label: string; variant: "success" | "warning" | "secondary" | "destructive" | "brand" }> = {
-  lead: { label: "Potansiyel", variant: "secondary" },
-  qualified: { label: "Nitelikli", variant: "secondary" },
-  proposal: { label: "Teklif Aşamasında", variant: "warning" },
-  negotiation: { label: "Müzakere", variant: "brand" },
-  won: { label: "Kazanıldı", variant: "success" },
-  lost: { label: "Kaybedildi", variant: "destructive" },
+const OPPORTUNITY_STAGE_MAP: Record<OpportunityStage, { labelKey: DictionaryKey; variant: "success" | "warning" | "secondary" | "destructive" | "brand" }> = {
+  lead: { labelKey: "admin.pipeline.stageLead", variant: "secondary" },
+  qualified: { labelKey: "admin.pipeline.stageQualified", variant: "secondary" },
+  proposal: { labelKey: "admin.pipeline.stageProposal", variant: "warning" },
+  negotiation: { labelKey: "admin.pipeline.stageNegotiation", variant: "brand" },
+  won: { labelKey: "admin.pipeline.stageWon", variant: "success" },
+  lost: { labelKey: "admin.pipeline.stageLost", variant: "destructive" },
 }
 
 const OPEN_STAGES: OpportunityStage[] = ['lead', 'qualified', 'proposal', 'negotiation']
@@ -49,6 +52,7 @@ export function PipelineAnalyticsClient({
   error?: string
 }) {
   const { globalCurrency } = useGlobalStore()
+  const { t, lang } = useLanguage()
   const [rates, setRates] = useState<Record<string, number>>({})
 
   useEffect(() => {
@@ -74,7 +78,7 @@ export function PipelineAnalyticsClient({
         const val = toGlobal(o.estimated_value || 0, o.currency || 'USD')
         return sum + val * ((o.probability ?? 0) / 100)
       }, 0)
-      return { stage, label: OPPORTUNITY_STAGE_MAP[stage].label, count: stageOpps.length, weightedValue }
+      return { stage, label: t(OPPORTUNITY_STAGE_MAP[stage].labelKey), count: stageOpps.length, weightedValue }
     })
   }, [opportunities, toGlobal])
 
@@ -87,7 +91,7 @@ export function PipelineAnalyticsClient({
       return {
         year: d.getFullYear(),
         month: d.getMonth(),
-        name: new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric' }).format(d),
+        name: new Intl.DateTimeFormat(localeFor(lang), { month: 'long', year: 'numeric' }).format(d),
       }
     })
 
@@ -155,9 +159,9 @@ export function PipelineAnalyticsClient({
         <div className="bg-brand-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
           <Target className="h-8 w-8 text-brand-600" />
         </div>
-        <h2 className="text-xl font-bold text-slate-900 mb-2">Henüz Fırsat Bulunmuyor</h2>
+        <h2 className="text-xl font-bold text-slate-900 mb-2">{t('admin.pipeline.emptyTitle')}</h2>
         <p className="text-slate-500 text-sm">
-          Müşteri detay sayfalarından fırsat oluşturduğunuzda satış hattı ve gelir tahmini burada belirecektir.
+          {t('admin.pipeline.emptyDescription')}
         </p>
       </div>
     )
@@ -174,12 +178,12 @@ export function PipelineAnalyticsClient({
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <Badge variant={OPPORTUNITY_STAGE_MAP[f.stage].variant}>{f.label}</Badge>
-                <div className="text-xs font-bold text-slate-400">{f.count} fırsat</div>
+                <div className="text-xs font-bold text-slate-400">{f.count} {t('admin.pipeline.opportunitiesSuffix')}</div>
               </div>
               <div className="text-2xl font-black text-slate-900 tracking-tight truncate" title={formatCurrency(f.weightedValue, globalCurrency)}>
                 {formatCurrency(f.weightedValue, globalCurrency)}
               </div>
-              <div className="text-xs text-slate-500 mt-2 font-medium">Ağırlıklı değer</div>
+              <div className="text-xs text-slate-500 mt-2 font-medium">{t('admin.pipeline.weightedValueLabel')}</div>
               <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-3">
                 <div
                   className="h-full rounded-full"
@@ -194,7 +198,7 @@ export function PipelineAnalyticsClient({
       <Card className="border-slate-200 shadow-sm">
         <CardContent className="p-6">
           <h3 className="text-base font-bold text-slate-800 flex items-center mb-6">
-            <TrendingUp className="w-5 h-5 mr-2 text-brand-500" /> Aşama Bazlı Boru Hattı
+            <TrendingUp className="w-5 h-5 mr-2 text-brand-500" /> {t('admin.pipeline.stagePipelineTitle')}
           </h3>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -206,7 +210,7 @@ export function PipelineAnalyticsClient({
                   contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontWeight: 600 }}
                   formatter={(value) => formatCurrency(Number(value), globalCurrency)}
                 />
-                <Bar dataKey="weightedValue" name="Ağırlıklı Değer" radius={[6, 6, 0, 0]}>
+                <Bar dataKey="weightedValue" name={t('admin.pipeline.weightedValueName')} radius={[6, 6, 0, 0]}>
                   {funnel.map((f, i) => (
                     <Cell key={f.stage} fill={COLORS[i % COLORS.length]} />
                   ))}
@@ -221,7 +225,7 @@ export function PipelineAnalyticsClient({
       <Card className="border-slate-200 shadow-sm">
         <CardContent className="p-6">
           <h3 className="text-base font-bold text-slate-800 flex items-center mb-6">
-            <TrendingUp className="w-5 h-5 mr-2 text-brand-500" /> 3 Aylık Gelir Tahmini
+            <TrendingUp className="w-5 h-5 mr-2 text-brand-500" /> {t('admin.pipeline.threeMonthForecastTitle')}
           </h3>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -234,8 +238,8 @@ export function PipelineAnalyticsClient({
                   formatter={(value) => formatCurrency(Number(value), globalCurrency)}
                 />
                 <Legend iconType="circle" iconSize={10} wrapperStyle={{ fontSize: '13px', fontWeight: 500, color: '#475569' }} />
-                <Bar dataKey="closed" name="Kapanan" fill="#059669" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="forecast" name="Tahmini" fill="#7c3aed" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="closed" name={t('admin.pipeline.closedLabel')} fill="#059669" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="forecast" name={t('admin.pipeline.forecastLabel')} fill="#7c3aed" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -248,7 +252,7 @@ export function PipelineAnalyticsClient({
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-base font-bold text-slate-800 flex items-center">
-                <Target className="w-5 h-5 mr-2 text-brand-500" /> Bu Ay Hedefe Karşı
+                <Target className="w-5 h-5 mr-2 text-brand-500" /> {t('admin.pipeline.thisMonthTargetTitle')}
               </h3>
               <span className="text-xs font-bold text-brand-600">%{thisMonthProgress.pct}</span>
             </div>
@@ -265,11 +269,11 @@ export function PipelineAnalyticsClient({
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-slate-50 rounded-lg p-4">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Gerçekleşen</div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{t('admin.pipeline.actualLabel')}</div>
                 <div className="text-lg font-black text-emerald-700">{formatCurrency(thisMonthProgress.actualThisMonth, globalCurrency)}</div>
               </div>
               <div className="bg-slate-50 rounded-lg p-4">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ağırlıklı Tahmin</div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{t('admin.pipeline.weightedForecastLabel')}</div>
                 <div className="text-lg font-black text-violet-700">{formatCurrency(thisMonthProgress.weightedForecastThisMonth, globalCurrency)}</div>
               </div>
             </div>
@@ -279,28 +283,28 @@ export function PipelineAnalyticsClient({
         <Card className="border-slate-200 shadow-sm">
           <CardContent className="p-6">
             <h3 className="text-base font-bold text-slate-800 flex items-center mb-5">
-              <Trophy className="w-5 h-5 mr-2 text-amber-500" /> Kazanma Oranı
+              <Trophy className="w-5 h-5 mr-2 text-amber-500" /> {t('admin.pipeline.winRateTitle')}
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-slate-50 rounded-lg p-4">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Kazanma Oranı</div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{t('admin.pipeline.winRateTitle')}</div>
                 <div className="text-lg font-black text-slate-900">%{winStats.winRate}</div>
               </div>
               <div className="bg-slate-50 rounded-lg p-4">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ort. Anlaşma Boyutu</div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{t('admin.pipeline.avgDealSizeLabel')}</div>
                 <div className="text-lg font-black text-slate-900">{formatCurrency(winStats.avgDealSize, globalCurrency)}</div>
               </div>
               <div className="bg-slate-50 rounded-lg p-4 flex items-center gap-2">
                 <Trophy className="w-4 h-4 text-emerald-600 shrink-0" />
                 <div>
-                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Kazanılan</div>
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('admin.pipeline.wonLabel')}</div>
                   <div className="text-lg font-black text-emerald-700">{winStats.wonCount}</div>
                 </div>
               </div>
               <div className="bg-slate-50 rounded-lg p-4 flex items-center gap-2">
                 <XCircle className="w-4 h-4 text-red-500 shrink-0" />
                 <div>
-                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Kaybedilen</div>
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('admin.pipeline.lostLabel')}</div>
                   <div className="text-lg font-black text-red-600">{winStats.lostCount}</div>
                 </div>
               </div>

@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createCategoryAction } from "@/actions/category.actions";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 const NEW_CATEGORY_VALUE = "__new__";
 
@@ -37,6 +38,7 @@ export function CategorySelectField({
   onCategoryCreated: (category: { id: string; name: string }) => void;
   disabled?: boolean;
 }) {
+  const { t } = useLanguage();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [name, setName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -51,9 +53,9 @@ export function CategorySelectField({
       onChange(result.category.id);
       setDialogOpen(false);
       setName("");
-      toast.success(`"${result.category.name}" kategorisi oluşturuldu`);
+      toast.success(`"${result.category.name}"${t("categorySelect.toast.createSuccessSuffix")}`);
     } else {
-      toast.error("Kategori oluşturulamadı", { description: result.error });
+      toast.error(t("categorySelect.toast.createError"), { description: result.error });
     }
   }
 
@@ -71,37 +73,36 @@ export function CategorySelectField({
         disabled={disabled}
         className="w-full"
       >
-        <option value="">-- Kategori Seçin --</option>
+        <option value="">{t("categorySelect.placeholderOption")}</option>
         {categories.map((c) => (
           <option key={c.id} value={c.id}>
             {c.name}
           </option>
         ))}
-        <option value={NEW_CATEGORY_VALUE}>+ Yeni Kategori Ekle...</option>
+        <option value={NEW_CATEGORY_VALUE}>{t("categorySelect.newCategoryOption")}</option>
       </SelectNative>
 
       <Dialog open={dialogOpen} onOpenChange={(v) => !isCreating && setDialogOpen(v)}>
         <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
-            <DialogTitle>Yeni Kategori Ekle</DialogTitle>
+            <DialogTitle>{t("categorySelect.dialog.title")}</DialogTitle>
             <DialogDescription>
-              Şirketinize özel yeni bir ürün kategorisi oluşturun. Ürün kataloğu sayfasında bu
-              kategoriye göre filtreleme yapabilirsiniz.
+              {t("categorySelect.dialog.description")}
             </DialogDescription>
           </DialogHeader>
           <div className="px-5 py-4 space-y-2">
-            <Label htmlFor="new-category-name">Kategori Adı</Label>
+            <Label htmlFor="new-category-name">{t("categorySelect.dialog.nameLabel")}</Label>
             <Input
               id="new-category-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Örn: Endüstriyel Ekipmanlar"
+              placeholder={t("categorySelect.dialog.namePlaceholder")}
               autoFocus
             />
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDialogOpen(false)} disabled={isCreating}>
-              İptal
+              {t("common.cancel")}
             </Button>
             <Button
               variant="primary"
@@ -110,10 +111,10 @@ export function CategorySelectField({
             >
               {isCreating ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Oluşturuluyor...
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> {t("categorySelect.dialog.creating")}
                 </>
               ) : (
-                "Oluştur"
+                t("categorySelect.dialog.create")
               )}
             </Button>
           </DialogFooter>

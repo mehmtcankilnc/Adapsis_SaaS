@@ -37,37 +37,9 @@ export async function Sidebar() {
   const isSuperAdmin = role === "admin";
   const name = profile?.full_name || user.email?.split("@")[0] || "Kullanıcı";
 
-  // Admin: Bekleyen talep sayısını göster
-  let pendingRequestCount = 0;
-  if (isSuperAdmin) {
-    const { count } = await supabase
-      .from("system_requests")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "pending");
-    pendingRequestCount = count || 0;
-  }
-
-  // Okunmamış teklif bildirimleri (Badge)
-  let unreadQuoteCount = 0;
-  if (isSuperAdmin) {
-    const { count } = await supabase
-      .from("quotes")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "pending")
-      .eq("is_read_by_admin", false);
-    unreadQuoteCount = count || 0;
-  } else {
-    // Sales role
-    const { count } = await supabase
-      .from("quotes")
-      .select("*", { count: "exact", head: true })
-      .eq("created_by", user.id)
-      .in("status", ["accepted", "rejected"])
-      .eq("is_read_by_sales", false);
-    unreadQuoteCount = count || 0;
-  }
-
-  // Vadesi gelen/gecikmiş görev sayısı (Dashboard rozeti)
+  // Rozet sayaçları birbirinden bağımsız — art arda await etmek yerine
+  // paralel çalıştırıyoruz (sidebar her navigasyonda render olduğu için bu,
+  // gezinme gecikmesini doğrudan azaltıyor).
   const endOfToday = new Date();
   endOfToday.setHours(23, 59, 59, 999);
   let dueTaskQuery = supabase
@@ -78,8 +50,31 @@ export async function Sidebar() {
   if (!isSuperAdmin) {
     dueTaskQuery = dueTaskQuery.or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`);
   }
-  const { count: dueTaskCountRaw } = await dueTaskQuery;
-  const dueTaskCount = dueTaskCountRaw || 0;
+
+  const unreadQuoteQuery = isSuperAdmin
+    ? supabase
+        .from("quotes")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending")
+        .eq("is_read_by_admin", false)
+    : supabase
+        .from("quotes")
+        .select("*", { count: "exact", head: true })
+        .eq("created_by", user.id)
+        .in("status", ["accepted", "rejected"])
+        .eq("is_read_by_sales", false);
+
+  const [pendingRequestResult, unreadQuoteResult, dueTaskResult] = await Promise.all([
+    isSuperAdmin
+      ? supabase.from("system_requests").select("*", { count: "exact", head: true }).eq("status", "pending")
+      : Promise.resolve({ count: 0 }),
+    unreadQuoteQuery,
+    dueTaskQuery,
+  ]);
+
+  const pendingRequestCount = pendingRequestResult.count || 0;
+  const unreadQuoteCount = unreadQuoteResult.count || 0;
+  const dueTaskCount = dueTaskResult.count || 0;
 
   return (
     // Masaüstü sol sidebar — logo ve global arama artık TopNavbar'da (bkz.

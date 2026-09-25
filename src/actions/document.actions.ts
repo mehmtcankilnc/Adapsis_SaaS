@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { getErrorMessage } from "@/lib/utils";
+import { getCurrentProfile } from "@/lib/auth";
 
 const BUCKET = "customer-documents";
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB
@@ -34,8 +35,8 @@ export async function uploadDocumentAction(formData: FormData) {
   try {
     const supabase = await createClient();
 
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) {
+    const profile = await getCurrentProfile();
+    if (!profile) {
       return { success: false, error: "Oturum bulunamadı." };
     }
 
@@ -71,7 +72,8 @@ export async function uploadDocumentAction(formData: FormData) {
         storage_path: storagePath,
         file_size: file.size,
         mime_type: file.type || null,
-        uploaded_by: user.user.id,
+        uploaded_by: profile.user.id,
+        organization_id: profile.organizationId,
       })
       .select()
       .single();

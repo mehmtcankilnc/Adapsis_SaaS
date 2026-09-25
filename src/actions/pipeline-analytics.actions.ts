@@ -13,12 +13,13 @@ function getCurrentPeriodMonth(): string {
 // ─── Admin: Satış Hattı & Gelir Tahmini için Tüm Veri ───
 export async function getPipelineAnalyticsAction() {
   try {
-    await assertAdmin();
+    const { organizationId } = await assertAdmin();
     const admin = createAdminClient();
 
     const { data: opportunitiesRaw, error: oppErr } = await admin
       .from("opportunities")
       .select("id, customer_id, title, stage, estimated_value, currency, probability, expected_close_date, owner_id, closed_at")
+      .eq("organization_id", organizationId)
       .order("created_at", { ascending: false });
     if (oppErr) throw oppErr;
 
@@ -30,10 +31,10 @@ export async function getPipelineAnalyticsAction() {
 
     const [{ data: customers }, { data: profiles }] = await Promise.all([
       customerIds.length > 0
-        ? admin.from("customers").select("id, company_name").in("id", customerIds)
+        ? admin.from("customers").select("id, company_name").eq("organization_id", organizationId).in("id", customerIds)
         : Promise.resolve({ data: [] as { id: string; company_name: string }[] }),
       ownerIds.length > 0
-        ? admin.from("profiles").select("id, full_name").in("id", ownerIds)
+        ? admin.from("profiles").select("id, full_name").eq("organization_id", organizationId).in("id", ownerIds)
         : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
     ]);
 
@@ -50,6 +51,7 @@ export async function getPipelineAnalyticsAction() {
     const { data: targets, error: targetsErr } = await admin
       .from("sales_targets")
       .select("profile_id, target_amount, target_currency")
+      .eq("organization_id", organizationId)
       .eq("period_month", periodMonth);
     if (targetsErr) throw targetsErr;
 
@@ -59,6 +61,7 @@ export async function getPipelineAnalyticsAction() {
     const { data: acceptedQuotes, error: quotesErr } = await admin
       .from("quotes")
       .select("final_price, currency")
+      .eq("organization_id", organizationId)
       .eq("status", "accepted")
       .gte("accepted_at", monthStart.toISOString());
     if (quotesErr) throw quotesErr;

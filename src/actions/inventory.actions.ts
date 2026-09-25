@@ -62,16 +62,16 @@ export async function editInventoryItemAction(itemId: string, data: { item_name:
 
 export async function createInventoryItemAction(data: { item_name: string, sku: string, unit: string, stock_level: number }) {
   try {
-    await assertAdmin()
+    const { organizationId } = await assertAdmin()
     const supabase = await createClient()
 
     if (!data.item_name || !data.sku || !data.unit) {
       return { success: false, error: 'İsim, SKU ve Birim alanları zorunludur.' }
     }
-    
+
     const { error } = await supabase
       .from('inventory')
-      .insert([data])
+      .insert([{ ...data, organization_id: organizationId }])
       
     if (error) {
       if (error.code === '23505') {

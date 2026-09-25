@@ -1,5 +1,6 @@
 import { LoginForm } from './LoginForm'
 import { Hexagon } from 'lucide-react'
+import { T } from '@/components/layout/T'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +16,7 @@ export default function LoginPage() {
           </div>
         </div>
         <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Adapsis</h2>
-        <p className="text-sm font-medium text-slate-500 mt-2 tracking-wide uppercase">B2B Kurumsal Konfigürasyon Ağı</p>
+        <p className="text-sm font-medium text-slate-500 mt-2 tracking-wide uppercase"><T k="login.tagline" /></p>
       </div>
 
       {/* Login Kartı */}
@@ -26,7 +27,7 @@ export default function LoginPage() {
         
         {/* Güvenlik Footer */}
         <p className="mt-8 text-center text-xs text-slate-400 font-medium">
-          Bu sisteme yalnızca yetkili Adapsis personeli erişebilir. <br /> İzinsiz giriş denemeleri kaydedilmektedir.
+          <T k="login.footerAuthorizedOnly" /> <br /> <T k="login.footerAttemptsLogged" />
         </p>
       </div>
 

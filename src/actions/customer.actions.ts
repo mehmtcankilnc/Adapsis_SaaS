@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { getErrorMessage } from "@/lib/utils";
+import { getCurrentProfile } from "@/lib/auth";
 import type { CustomerStatus } from "@/types/product.types";
 
 export async function createCustomerAction(data: {
@@ -15,8 +16,8 @@ export async function createCustomerAction(data: {
   try {
     const supabase = await createClient();
 
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) {
+    const profile = await getCurrentProfile();
+    if (!profile) {
       return { success: false, error: "Oturum bulunamadı." };
     }
 
@@ -32,7 +33,8 @@ export async function createCustomerAction(data: {
         email: data.email || null,
         phone: data.phone || null,
         address: data.address || null,
-        created_by: user.user.id,
+        created_by: profile.user.id,
+        organization_id: profile.organizationId,
       })
       .select()
       .single();
@@ -141,8 +143,8 @@ export async function createContactAction(data: {
   try {
     const supabase = await createClient();
 
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) {
+    const profile = await getCurrentProfile();
+    if (!profile) {
       return { success: false, error: "Oturum bulunamadı." };
     }
 
@@ -174,7 +176,8 @@ export async function createContactAction(data: {
         phone: data.phone || null,
         is_primary: data.is_primary ?? false,
         notes: data.notes || null,
-        created_by: user.user.id,
+        created_by: profile.user.id,
+        organization_id: profile.organizationId,
       })
       .select()
       .single();

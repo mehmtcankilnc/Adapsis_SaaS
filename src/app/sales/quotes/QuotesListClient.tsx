@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Search, ChevronRight, FileText, Percent } from 'lucide-react'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { useLanguage } from '@/lib/i18n/LanguageProvider'
+import { localeFor } from '@/lib/i18n/format'
 import {
   useReactTable,
   getCoreRowModel,
@@ -43,14 +45,15 @@ export function QuotesListClient({
   role: string
   discountApprovalThreshold?: number
 }) {
+  const { t, lang } = useLanguage()
   const [search, setSearch] = useState('')
   const isAdmin = role === 'admin'
 
   const statusMap: Record<string, { label: string, variant: "success" | "warning" | "secondary" | "destructive" | "brand" }> = {
-    'pending': { label: 'Bekliyor', variant: 'warning' },
-    'accepted': { label: 'Onaylandı', variant: 'success' },
-    'rejected': { label: 'Reddedildi', variant: 'destructive' },
-    'pending_admin_approval': { label: 'İskonto Onayı', variant: 'brand' },
+    'pending': { label: t('sales.quotes.status.pending'), variant: 'warning' },
+    'accepted': { label: t('sales.quotes.status.accepted'), variant: 'success' },
+    'rejected': { label: t('sales.quotes.status.rejected'), variant: 'destructive' },
+    'pending_admin_approval': { label: t('sales.quotes.status.pendingAdminApproval'), variant: 'brand' },
   }
 
   const formatPrice = (amount: number, currency: string) => {
@@ -60,7 +63,7 @@ export function QuotesListClient({
   }
 
   const formatDate = (dateStr: string) => {
-    return new Intl.DateTimeFormat('tr-TR', {
+    return new Intl.DateTimeFormat(localeFor(lang), {
       day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
     }).format(new Date(dateStr))
   }
@@ -80,7 +83,7 @@ export function QuotesListClient({
       {
         accessorFn: (row) => row.customer_company,
         id: 'customer_company',
-        header: 'Müşteri / Firma',
+        header: t('sales.quotes.table.customerCompany'),
         cell: (info) => (
           <div className="truncate font-semibold text-slate-900" title={info.getValue() as string}>
             {info.getValue() as string}
@@ -92,9 +95,9 @@ export function QuotesListClient({
         size: 200,
       },
       {
-        accessorFn: (row) => getProductName(row.products) || 'Bilinmeyen Ürün',
+        accessorFn: (row) => getProductName(row.products) || t('sales.quotes.unknownProduct'),
         id: 'product_name',
-        header: 'Ürün Modeli',
+        header: t('sales.quotes.table.productModel'),
         cell: (info) => <div className="truncate text-sm text-slate-700" title={info.getValue() as string}>{info.getValue() as string}</div>,
         size: 180,
       },
@@ -102,9 +105,9 @@ export function QuotesListClient({
 
     if (isAdmin) {
       cols.push({
-        accessorFn: (row) => row.creator_name || 'Bilinmeyen',
+        accessorFn: (row) => row.creator_name || t('sales.quotes.unknown'),
         id: 'creator_name',
-        header: 'Satış Temsilcisi',
+        header: t('sales.quotes.table.salesRep'),
         cell: (info) => (
           <div className="flex items-center gap-2 truncate">
             <div className="w-7 h-7 bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0">
@@ -120,7 +123,7 @@ export function QuotesListClient({
     cols.push({
       accessorFn: (row) => formatPrice(row.final_price, row.currency),
       id: 'final_price',
-      header: 'Teklif Tutarı',
+      header: t('sales.quotes.table.quoteAmount'),
       cell: (info) => <div className="font-bold text-slate-800 truncate">{info.getValue() as string}</div>,
       size: 140,
     });
@@ -129,7 +132,7 @@ export function QuotesListClient({
       cols.push({
         accessorFn: (row) => Number(row.discount_percentage) || 0,
         id: 'discount',
-        header: () => <div className="text-center">İskonto</div>,
+        header: () => <div className="text-center">{t('sales.quotes.discountLabel')}</div>,
         cell: (info) => {
           const discountPct = info.getValue() as number;
           return (
@@ -154,7 +157,7 @@ export function QuotesListClient({
     cols.push({
       accessorFn: (row) => formatDate(row.created_at),
       id: 'created_at',
-      header: 'Tarih',
+      header: t('sales.quotes.table.date'),
       cell: (info) => <div className="text-sm font-medium text-slate-500 truncate">{info.getValue() as string}</div>,
       size: 150,
     });
@@ -162,7 +165,7 @@ export function QuotesListClient({
     cols.push({
       accessorFn: (row) => row.status,
       id: 'status',
-      header: 'Durum',
+      header: t('sales.quotes.table.status'),
       cell: (info) => {
         const stat = statusMap[info.getValue() as string] || { label: info.getValue(), variant: 'secondary' };
         return <Badge variant={stat.variant}>{stat.label}</Badge>;
@@ -172,12 +175,12 @@ export function QuotesListClient({
 
     cols.push({
       id: 'actions',
-      header: () => <div className="text-right">Eylemler</div>,
+      header: () => <div className="text-right">{t('sales.quotes.table.actions')}</div>,
       cell: (info) => (
         <div className="text-right">
           <Link href={`/sales/quotes/${info.row.original.id}`}>
             <Button variant="ghost" className="text-brand-600 hover:text-brand-800 hover:bg-brand-50 font-medium h-8 px-2">
-              Detay <ChevronRight className="ml-1 h-4 w-4" />
+              {t('sales.quotes.table.detail')} <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           </Link>
         </div>
@@ -186,7 +189,7 @@ export function QuotesListClient({
     });
 
     return cols;
-  }, [isAdmin, discountApprovalThreshold]);
+  }, [isAdmin, discountApprovalThreshold, t]);
 
   const table = useReactTable({
     data: filteredQuotes,
@@ -206,7 +209,7 @@ export function QuotesListClient({
             type="text" 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={isAdmin ? "Firma, ürün veya satış temsilcisine göre ara..." : "Firma adına veya ürüne göre ara..."} 
+            placeholder={isAdmin ? t('sales.quotes.searchPlaceholderAdmin') : t('sales.quotes.searchPlaceholder')}
             className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
           />
         </div>
@@ -217,12 +220,12 @@ export function QuotesListClient({
           <div className="p-8 bg-slate-50/30">
             <EmptyState 
               icon={FileText} 
-              title={search ? "Sonuç Bulunamadı" : "Henüz Teklif Oluşturulmamış"}
-              description={search ? "Aradığınız kriterlere uygun bir teklif bulunamadı." : "Sistemde hiçbir teklif kaydı bulunmuyor. Satış konfigüratörü üzerinden ilk teklifinizi oluşturabilirsiniz."}
+              title={search ? t('sales.quotes.emptyState.noResultsTitle') : t('sales.quotes.emptyState.noQuotesTitle')}
+              description={search ? t('sales.quotes.emptyState.noResultsDescription') : t('sales.quotes.emptyState.noQuotesDescription')}
               action={
                 <Link href="/sales/new-quote">
                   <Button variant="primary" className="mt-2 shadow-md transition-all">
-                    Yeni Teklif Oluştur
+                    {t('sales.quotes.createNew')}
                   </Button>
                 </Link>
               } 

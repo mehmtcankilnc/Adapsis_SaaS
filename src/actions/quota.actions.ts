@@ -48,13 +48,14 @@ export async function getMyQuotaAction() {
 // ─── Admin: Tüm Temsilcilerin Kota/Komisyon Durumu ───
 export async function listRepsQuotaAction() {
   try {
-    await assertAdmin();
+    const { organizationId } = await assertAdmin();
     const admin = createAdminClient();
     const periodMonth = getCurrentPeriodMonth();
 
     const { data: profiles, error: profilesErr } = await admin
       .from("profiles")
       .select("id, full_name, commission_rate")
+      .eq("organization_id", organizationId)
       .eq("role", "sales")
       .order("full_name", { ascending: true });
     if (profilesErr) throw profilesErr;
@@ -64,6 +65,7 @@ export async function listRepsQuotaAction() {
     const { data: targets } = await admin
       .from("sales_targets")
       .select("profile_id, target_amount, target_currency")
+      .eq("organization_id", organizationId)
       .eq("period_month", periodMonth)
       .in("profile_id", repIds.length > 0 ? repIds : ["00000000-0000-0000-0000-000000000000"]);
 
@@ -74,6 +76,7 @@ export async function listRepsQuotaAction() {
     const { data: acceptedQuotes } = await admin
       .from("quotes")
       .select("final_price, currency, created_by")
+      .eq("organization_id", organizationId)
       .eq("status", "accepted")
       .gte("accepted_at", monthStart.toISOString())
       .in("created_by", repIds.length > 0 ? repIds : ["00000000-0000-0000-0000-000000000000"]);
@@ -112,14 +115,15 @@ export async function upsertRepQuotaAction(
   data: { commissionRate?: number; targetAmount?: number; targetCurrency?: string },
 ) {
   try {
-    await assertAdmin();
+    const { organizationId } = await assertAdmin();
     const admin = createAdminClient();
 
     if (data.commissionRate !== undefined) {
       const { error } = await admin
         .from("profiles")
         .update({ commission_rate: data.commissionRate })
-        .eq("id", profileId);
+        .eq("id", profileId)
+        .eq("organization_id", organizationId);
       if (error) throw error;
     }
 
@@ -127,6 +131,7 @@ export async function upsertRepQuotaAction(
       const { error } = await admin.from("sales_targets").upsert(
         {
           profile_id: profileId,
+          organization_id: organizationId,
           period_month: getCurrentPeriodMonth(),
           target_amount: data.targetAmount ?? 0,
           target_currency: data.targetCurrency || "USD",

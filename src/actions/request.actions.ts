@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { getErrorMessage } from "@/lib/utils";
+import { getCurrentProfile } from "@/lib/auth";
 
 /**
  * Satış personeli tarafından ürün veya envanter güncelleme talebi oluşturur.
@@ -15,11 +16,9 @@ export async function createSystemRequestAction(data: {
 }) {
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const profile = await getCurrentProfile();
 
-    if (!user) {
+    if (!profile) {
       return { success: false, error: "Oturum bulunamadı." };
     }
 
@@ -34,7 +33,8 @@ export async function createSystemRequestAction(data: {
       request_type: data.request_type,
       item_id: data.item_id,
       item_name: data.item_name,
-      requested_by: user.id,
+      requested_by: profile.user.id,
+      organization_id: profile.organizationId,
       request_note: data.request_note.trim(),
       status: "pending",
     });

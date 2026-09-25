@@ -28,6 +28,7 @@ import {
 } from "@/actions/inventory.actions";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { RequestUpdateButton } from "@/components/shared/RequestUpdateButton";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import type { InventoryItem } from "@/types/product.types";
 
 export default function InventoryTableClient({
@@ -37,6 +38,7 @@ export default function InventoryTableClient({
   inventory: InventoryItem[];
   role: string;
 }) {
+  const { t } = useLanguage();
   // Girdi-Çıktı Modal
   const [adjustItem, setAdjustItem] = useState<InventoryItem | null>(null);
   const [adjustValue, setAdjustValue] = useState<string>("");
@@ -57,9 +59,9 @@ export default function InventoryTableClient({
   const [searchTerm, setSearchTerm] = useState("");
 
   const fetchStatus = (stock: number): { label: string; variant: "destructive" | "warning" | "success" } => {
-    if (stock <= 5) return { label: "Kritik", variant: "destructive" };
-    if (stock <= 20) return { label: "Azalıyor", variant: "warning" };
-    return { label: "Yeterli", variant: "success" };
+    if (stock <= 5) return { label: t("admin.inventory.statusCritical"), variant: "destructive" };
+    if (stock <= 20) return { label: t("admin.inventory.statusLow"), variant: "warning" };
+    return { label: t("admin.inventory.statusSufficient"), variant: "success" };
   };
 
   // Aksiyonlar: Stok Giriş Çıkışı
@@ -73,7 +75,7 @@ export default function InventoryTableClient({
     if (!adjustItem) return;
     const val = Number(adjustValue);
     if (!val || val <= 0) {
-      setAdjustError("Lütfen geçerli pozitif bir sayı girin.");
+      setAdjustError(t("admin.inventory.invalidPositiveNumber"));
       return;
     }
 
@@ -86,7 +88,7 @@ export default function InventoryTableClient({
     if (res.success) {
       setAdjustItem(null);
     } else {
-      setAdjustError(res.error || "Güncelleme başarısız.");
+      setAdjustError(res.error || t("admin.inventory.updateFailed"));
     }
   };
 
@@ -100,7 +102,7 @@ export default function InventoryTableClient({
   const submitEdit = async () => {
     if (!editItem) return;
     if (!editData.item_name || !editData.sku || !editData.unit) {
-      setEditError("Tüm alanlar zorunludur.");
+      setEditError(t("admin.inventory.allFieldsRequired"));
       return;
     }
 
@@ -112,7 +114,7 @@ export default function InventoryTableClient({
     if (res.success) {
       setEditItem(null);
     } else {
-      setEditError(res.error || "Kayıt başarısız oldu.");
+      setEditError(res.error || t("admin.inventory.saveFailed"));
     }
   };
 
@@ -134,7 +136,7 @@ export default function InventoryTableClient({
           <PackageSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Stok adı veya SKU'ya göre ara..."
+            placeholder={t("admin.inventory.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-sm"
@@ -151,16 +153,16 @@ export default function InventoryTableClient({
                   SKU
                 </th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Ham Madde / Parça Adı
+                  {t("admin.inventory.itemNameLabel")}
                 </th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">
-                  Mevcut Miktar
+                  {t("admin.inventory.columnCurrentStock")}
                 </th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">
-                  Durum
+                  {t("admin.inventory.columnStatus")}
                 </th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">
-                  Eylemler
+                  {t("admin.inventory.columnActions")}
                 </th>
               </tr>
             </thead>
@@ -170,11 +172,11 @@ export default function InventoryTableClient({
                   <td colSpan={5} className="px-0 py-0 bg-slate-50/30">
                     <EmptyState
                       icon={PackageSearch}
-                      title={searchTerm ? "Arama Sonucu Bulunamadı" : "Stok Kaydı Bulunamadı"}
-                      description={searchTerm ? `"${searchTerm}" ile eşleşen bir sonuç yok.` : "Sistemde henüz hiçbir üretim kalemi veya ham madde bulunmuyor. Takibe başlamak için yeni bir stok oluşturun."}
+                      title={searchTerm ? t("admin.inventory.emptySearchTitle") : t("admin.inventory.emptyTitle")}
+                      description={searchTerm ? `"${searchTerm}" ${t("admin.inventory.emptySearchDescriptionSuffix")}` : t("admin.inventory.emptyDescription")}
                       action={searchTerm ? (
                         <Button variant="outline" onClick={() => setSearchTerm("")}>
-                          Aramayı Temizle
+                          {t("admin.inventory.clearSearchButton")}
                         </Button>
                       ) : undefined}
                     />
@@ -219,14 +221,14 @@ export default function InventoryTableClient({
                               className="h-8 text-xs font-semibold px-3 mr-2 bg-white"
                             >
                               <ArrowRightLeft className="w-3 h-3 mr-1" />{" "}
-                              Giriş/Çıkış
+                              {t("admin.inventory.stockMovementButton")}
                             </Button>
                             <Button
                               variant="ghost"
                               onClick={() => handleOpenEdit(item)}
                               className="h-8 text-xs font-semibold px-3 text-slate-500 hover:text-brand-600 hover:bg-brand-50"
                             >
-                              Düzenle
+                              {t("admin.inventory.editButton")}
                             </Button>
                           </>
                         ) : (
@@ -254,10 +256,9 @@ export default function InventoryTableClient({
         >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Stok Hareketi (Giriş/Çıkış)</DialogTitle>
+              <DialogTitle>{t("admin.inventory.stockMovementDialogTitle")}</DialogTitle>
               <DialogDescription>
-                <strong>{adjustItem.item_name}</strong> kalemi için manuel stok
-                ayarlaması yapın. Mevcut miktar:{" "}
+                <strong>{adjustItem.item_name}</strong> {t("admin.inventory.stockMovementDescriptionMiddle")}{" "}
                 <strong>
                   {adjustItem.stock_level} {adjustItem.unit}
                 </strong>
@@ -271,12 +272,12 @@ export default function InventoryTableClient({
               )}
 
               <div className="space-y-2">
-                <Label>Eklenecek veya Çıkarılacak Miktar</Label>
+                <Label>{t("admin.inventory.adjustAmountLabel")}</Label>
                 <Input
                   type="number"
                   value={adjustValue}
                   onChange={(e) => setAdjustValue(e.target.value)}
-                  placeholder="Örn: 50"
+                  placeholder={t("admin.inventory.adjustAmountPlaceholder")}
                 />
               </div>
             </div>
@@ -288,9 +289,9 @@ export default function InventoryTableClient({
                 className="bg-red-600 hover:bg-red-700 w-full sm:w-auto"
               >
                 {isAdjusting ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> İşleniyor...</>
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("admin.inventory.processingButton")}</>
                 ) : (
-                  <><Minus className="mr-2 h-4 w-4" /> Stok Çıkışı</>
+                  <><Minus className="mr-2 h-4 w-4" /> {t("admin.inventory.stockOutButton")}</>
                 )}
               </Button>
               <Button
@@ -300,9 +301,9 @@ export default function InventoryTableClient({
                 className="bg-emerald-600 hover:bg-emerald-700 hover:text-emerald-50 text-white w-full sm:w-auto"
               >
                 {isAdjusting ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> İşleniyor...</>
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("admin.inventory.processingButton")}</>
                 ) : (
-                  <><Plus className="mr-2 h-4 w-4" /> Stok Girişi</>
+                  <><Plus className="mr-2 h-4 w-4" /> {t("admin.inventory.stockInButton")}</>
                 )}
               </Button>
             </DialogFooter>
@@ -315,7 +316,7 @@ export default function InventoryTableClient({
         <Dialog open={!!editItem} onOpenChange={(v) => !v && setEditItem(null)}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Stok Kalemi Düzenle</DialogTitle>
+              <DialogTitle>{t("admin.inventory.editDialogTitle")}</DialogTitle>
             </DialogHeader>
             <div className="p-6 space-y-4">
               {editError && (
@@ -326,7 +327,7 @@ export default function InventoryTableClient({
 
               <div className="flex flex-col gap-4">
                 <div className="space-y-2">
-                  <Label>Ham Madde / Parça Adı</Label>
+                  <Label>{t("admin.inventory.itemNameLabel")}</Label>
                   <Input
                     value={editData.item_name}
                     onChange={(e) =>
@@ -336,7 +337,7 @@ export default function InventoryTableClient({
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Stok Kodu (SKU)</Label>
+                    <Label>{t("admin.inventory.skuLabel")}</Label>
                     <Input
                       value={editData.sku}
                       onChange={(e) =>
@@ -345,13 +346,13 @@ export default function InventoryTableClient({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Birim</Label>
+                    <Label>{t("admin.inventory.unitLabel")}</Label>
                     <Input
                       value={editData.unit}
                       onChange={(e) =>
                         setEditData({ ...editData, unit: e.target.value })
                       }
-                      placeholder="Adet, kg, metre..."
+                      placeholder={t("admin.inventory.unitPlaceholderEdit")}
                     />
                   </div>
                 </div>
@@ -359,7 +360,7 @@ export default function InventoryTableClient({
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setEditItem(null)}>
-                İptal
+                {t("common.cancel")}
               </Button>
               <Button
                 variant="primary"
@@ -367,9 +368,9 @@ export default function InventoryTableClient({
                 disabled={isEditing}
               >
                 {isEditing ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Kaydediliyor...</>
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("admin.inventory.savingButton")}</>
                 ) : (
-                  <><Save className="mr-2 h-4 w-4" /> Değişiklikleri Kaydet</>
+                  <><Save className="mr-2 h-4 w-4" /> {t("admin.inventory.saveChangesButton")}</>
                 )}
               </Button>
             </DialogFooter>

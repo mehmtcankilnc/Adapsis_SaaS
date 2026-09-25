@@ -19,7 +19,7 @@ function slugify(name: string): string {
 // ürün oluşturma/düzenleme formundaki "+ Yeni Kategori Ekle" akışından çağrılır.
 export async function createCategoryAction(data: { name: string; description?: string }) {
   try {
-    await assertAdmin()
+    const { organizationId } = await assertAdmin()
 
     const name = data.name?.trim()
     if (!name || name.length < 2) {
@@ -29,12 +29,17 @@ export async function createCategoryAction(data: { name: string; description?: s
     const supabase = await createClient()
 
     const baseSlug = slugify(name) || 'kategori'
-    // categories.slug UNIQUE — aynı isimle ikinci bir kategori denenirse
-    // çarpışmayı önlemek için kısa bir sayısal sonek eklenir.
+    // categories.slug organizasyon başına UNIQUE — aynı isimle ikinci bir
+    // kategori denenirse çarpışmayı önlemek için kısa bir sayısal sonek eklenir.
     let slug = baseSlug
     let attempt = 0
     while (attempt < 5) {
-      const { data: existing } = await supabase.from('categories').select('id').eq('slug', slug).maybeSingle()
+      const { data: existing } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('slug', slug)
+        .eq('organization_id', organizationId)
+        .maybeSingle()
       if (!existing) break
       attempt++
       slug = `${baseSlug}-${attempt + 1}`
@@ -47,6 +52,7 @@ export async function createCategoryAction(data: { name: string; description?: s
         slug,
         description: data.description?.trim() || null,
         is_active: true,
+        organization_id: organizationId,
       })
       .select('id, name')
       .single()

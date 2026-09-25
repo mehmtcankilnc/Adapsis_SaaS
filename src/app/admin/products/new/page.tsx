@@ -30,10 +30,12 @@ import { CategorySelectField } from "@/components/shared/CategorySelectField";
 import { useProductBuilderStore } from "@/store/product-builder";
 import { createProductAction, getCategoriesAction } from "@/actions/product.actions";
 import { PriceEffectType, StockRecipeItem, InventoryItem } from "@/types/product.types";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export default function NewProductPage() {
   const router = useRouter();
   const store = useProductBuilderStore();
+  const { t } = useLanguage();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
@@ -86,13 +88,13 @@ export default function NewProductPage() {
     });
 
     if (!result.success) {
-      toast.error("Ürün kaydedilemedi", {
+      toast.error(t("admin.products.createFailedToast"), {
         description:
-          result.error || "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.",
+          result.error || t("admin.products.unexpectedErrorRetry"),
       });
       setIsSubmitting(false);
     } else {
-      toast.success("Ürün oluşturuldu");
+      toast.success(t("admin.products.createdToast"));
       store.reset();
       router.push("/admin/products");
     }
@@ -113,7 +115,7 @@ export default function NewProductPage() {
               </Link>
               <div className="min-w-0">
                 <h1 className="text-xl font-semibold text-slate-900 truncate">
-                  Yeni Ürün Ekle
+                  {t("admin.products.newPageTitle")}
                 </h1>
               </div>
             </div>
@@ -123,7 +125,7 @@ export default function NewProductPage() {
                 variant="ghost"
                 onClick={() => router.push("/admin/products")}
               >
-                İptal
+                {t("common.cancel")}
               </Button>
               <Button
                 variant="primary"
@@ -133,11 +135,11 @@ export default function NewProductPage() {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-                    Kaydediliyor...
+                    {t("admin.products.savingButton")}
                   </>
                 ) : (
                   <>
-                    <Save className="mr-2 h-4 w-4" /> Ürünü Kaydet
+                    <Save className="mr-2 h-4 w-4" /> {t("admin.products.saveProductButton")}
                   </>
                 )}
               </Button>
@@ -152,11 +154,10 @@ export default function NewProductPage() {
           <div className="lg:col-span-4 space-y-6">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">
-                Temel Bilgiler
+                {t("admin.products.basicInfoTitle")}
               </h2>
               <p className="text-sm text-slate-500 mt-1">
-                Ürününüzün adı, stok kodu ve sistemdeki taban fiyatlandırması
-                gibi ana kimlik bilgileri.
+                {t("admin.products.basicInfoDescriptionNew")}
               </p>
             </div>
 
@@ -164,7 +165,7 @@ export default function NewProductPage() {
               <CardContent className="pt-6 space-y-5">
                 <div className="space-y-2">
                   <Label>
-                    Ürün Kategorisi <span className="text-red-500">*</span>
+                    {t("admin.products.categoryLabel")} <span className="text-red-500">*</span>
                   </Label>
                   <CategorySelectField
                     categories={categories}
@@ -177,29 +178,29 @@ export default function NewProductPage() {
 
                 <div className="space-y-2">
                   <Label>
-                    Ürün Adı <span className="text-red-500">*</span>
+                    {t("admin.products.nameLabel")} <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     value={store.name}
                     onChange={(e) =>
                       store.setBaseInfo({ name: e.target.value })
                     }
-                    placeholder="Örn: Endüstriyel Pompa Seti"
+                    placeholder={t("admin.products.namePlaceholder")}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Stok Kodu (SKU)</Label>
+                  <Label>{t("admin.products.skuLabel")}</Label>
                   <Input
                     value={store.sku}
                     onChange={(e) => store.setBaseInfo({ sku: e.target.value })}
-                    placeholder="URN-0001"
+                    placeholder={t("admin.products.skuPlaceholder")}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label>
-                    Taban Fiyat <span className="text-red-500">*</span>
+                    {t("admin.products.basePriceLabel")} <span className="text-red-500">*</span>
                   </Label>
                   <div className="flex gap-3">
                     <Input
@@ -233,14 +234,14 @@ export default function NewProductPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Ürün Açıklaması</Label>
+                  <Label>{t("admin.products.descriptionLabel")}</Label>
                   <textarea
                     className="w-full min-h-[100px] rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition-colors focus-visible:outline-none focus-visible:border-brand-500 focus-visible:ring-1 focus-visible:ring-brand-500"
                     value={store.description}
                     onChange={(e) =>
                       store.setBaseInfo({ description: e.target.value })
                     }
-                    placeholder="Ürün hakkında kısa bilgi..."
+                    placeholder={t("admin.products.descriptionPlaceholder")}
                   />
                 </div>
               </CardContent>
@@ -251,11 +252,10 @@ export default function NewProductPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">
-                  Ürün Varyasyonları
+                  {t("admin.products.variantsTitle")}
                 </h2>
                 <p className="text-sm text-slate-500 mt-1">
-                  Müşterinin satın alım esnasında seçebileceği dinamik
-                  parametreleri (Örn: Soğutma Tipi, Renk) ekleyin.
+                  {t("admin.products.variantsDescriptionNew")}
                 </p>
               </div>
               <Button
@@ -263,7 +263,7 @@ export default function NewProductPage() {
                 onClick={store.addVariantGroup}
                 className="shrink-0 bg-white"
               >
-                <Plus className="mr-2 h-4 w-4" /> Grup Ekle
+                <Plus className="mr-2 h-4 w-4" /> {t("admin.products.addGroupButton")}
               </Button>
             </div>
 
@@ -283,7 +283,7 @@ export default function NewProductPage() {
                               group_name: e.target.value,
                             })
                           }
-                          placeholder="Parametre Grubu (Örn: Güç Seviyesi)"
+                          placeholder={t("admin.products.groupNamePlaceholder")}
                           className="h-9 font-medium"
                         />
                       </div>
@@ -302,14 +302,14 @@ export default function NewProductPage() {
                     <table className="w-full text-left text-sm whitespace-nowrap">
                       <thead className="bg-white border-b border-slate-100 text-slate-500">
                         <tr>
-                          <th className="px-5 py-3 font-medium">Seçenek Adı</th>
-                          <th className="px-5 py-3 font-medium">Sistem Kodu</th>
+                          <th className="px-5 py-3 font-medium">{t("admin.products.columnOptionName")}</th>
+                          <th className="px-5 py-3 font-medium">{t("admin.products.columnSystemCode")}</th>
                           <th className="px-5 py-3 font-medium">
-                            Fiyat Etkisi
+                            {t("admin.products.columnPriceEffect")}
                           </th>
-                          <th className="px-5 py-3 font-medium">Miktar</th>
+                          <th className="px-5 py-3 font-medium">{t("admin.products.columnAmount")}</th>
                           <th className="px-5 py-3 font-medium text-center">
-                            Varsayılan
+                            {t("admin.products.columnDefault")}
                           </th>
                           <th className="px-5 py-3 w-10"></th>
                         </tr>
@@ -328,7 +328,7 @@ export default function NewProductPage() {
                                     label: e.target.value,
                                   })
                                 }
-                                placeholder="Örn: Büyük Boy"
+                                placeholder={t("admin.products.optionLabelPlaceholder")}
                                 className="h-9 w-full min-w-[120px]"
                               />
                             </td>
@@ -340,7 +340,7 @@ export default function NewProductPage() {
                                     value: e.target.value,
                                   })
                                 }
-                                placeholder="buyuk_boy"
+                                placeholder={t("admin.products.optionValuePlaceholder")}
                                 className="h-9 w-full min-w-[100px] text-slate-500"
                               />
                             </td>
@@ -357,9 +357,9 @@ export default function NewProductPage() {
                                 }}
                                 className="h-9 w-[130px]"
                               >
-                                <option value="fixed">Sabit (+)</option>
-                                <option value="multiplier">Çarpan (x)</option>
-                                <option value="percentage">Yüzde (%)</option>
+                                <option value="fixed">{t("admin.products.priceEffectFixed")}</option>
+                                <option value="multiplier">{t("admin.products.priceEffectMultiplier")}</option>
+                                <option value="percentage">{t("admin.products.priceEffectPercentage")}</option>
                               </SelectNative>
                             </td>
                             <td className="px-5 py-3 align-top">
@@ -386,7 +386,7 @@ export default function NewProductPage() {
                             <td className="px-5 py-3 text-center align-middle">
                               <div className="flex justify-center -mt-1">
                                 <input
-                                  title="Varsayılan olarak seçili gelsin"
+                                  title={t("admin.products.defaultRadioTitleNew")}
                                   type="radio"
                                   name={`default_${groupIndex}`}
                                   checked={option.is_default}
@@ -426,7 +426,7 @@ export default function NewProductPage() {
                       onClick={() => store.addOption(groupIndex)}
                       className="text-brand-600 hover:text-brand-700 hover:bg-brand-50 w-full justify-start text-xs rounded-md"
                     >
-                      <Plus className="mr-2 h-3 w-3" /> Seçenek Ekle
+                      <Plus className="mr-2 h-3 w-3" /> {t("admin.products.addOptionButton")}
                     </Button>
                   </div>
                 </Card>
@@ -436,14 +436,13 @@ export default function NewProductPage() {
                 <div className="border-2 border-dashed border-slate-200 rounded-xl py-16 px-6 text-center bg-white">
                   <Layers className="h-10 w-10 text-slate-300 mx-auto mb-4" />
                   <h3 className="text-sm font-semibold text-slate-900 mb-1">
-                    Henüz Parametre Eklenmedi
+                    {t("admin.products.noVariantsTitle")}
                   </h3>
                   <p className="text-sm text-slate-500 max-w-sm mx-auto mb-6">
-                    Müşterilerinizin ürün yapılandırırken seçeceği seçenekleri
-                    eklemeye başlamak için aşağıya tıklayın.
+                    {t("admin.products.noVariantsDescription")}
                   </p>
                   <Button variant="secondary" onClick={store.addVariantGroup}>
-                    <Plus className="mr-2 h-4 w-4" /> Parametre Ekle
+                    <Plus className="mr-2 h-4 w-4" /> {t("admin.products.addParameterButton")}
                   </Button>
                 </div>
               )}
@@ -457,10 +456,10 @@ export default function NewProductPage() {
             <div>
               <h2 className="text-lg font-semibold text-slate-900 flex items-center">
                 <Package className="h-5 w-5 text-brand-600 mr-2" />
-                Gerekli Stoklar (Malzeme Reçetesi)
+                {t("admin.products.stockRecipeTitle")}
               </h2>
               <p className="text-sm text-slate-500 mt-1">
-                Bu ürünün üretimi için envanterden gerekli kalemleri ve miktarlarını tanımlayın.
+                {t("admin.products.stockRecipeDescription")}
               </p>
             </div>
             <Button
@@ -468,7 +467,7 @@ export default function NewProductPage() {
               onClick={() => setStockRecipe(prev => [...prev, { inventory_id: '', amount: 1 }])}
               className="shrink-0 bg-white"
             >
-              <Plus className="mr-2 h-4 w-4" /> Kalem Ekle
+              <Plus className="mr-2 h-4 w-4" /> {t("admin.products.addStockItemButton")}
             </Button>
           </div>
 
@@ -478,8 +477,8 @@ export default function NewProductPage() {
                 <table className="w-full text-left text-sm">
                   <thead className="bg-slate-50 border-b border-slate-200">
                     <tr>
-                      <th className="px-5 py-3 font-semibold text-slate-600">Envanter Kalemi</th>
-                      <th className="px-5 py-3 font-semibold text-slate-600 w-40">Gerekli Miktar</th>
+                      <th className="px-5 py-3 font-semibold text-slate-600">{t("admin.products.columnInventoryItem")}</th>
+                      <th className="px-5 py-3 font-semibold text-slate-600 w-40">{t("admin.products.columnRequiredAmount")}</th>
                       <th className="px-5 py-3 w-16"></th>
                     </tr>
                   </thead>
@@ -496,10 +495,10 @@ export default function NewProductPage() {
                             }}
                             className="w-full"
                           >
-                            <option value="">-- Kalem Seçin --</option>
+                            <option value="">{t("admin.products.selectItemOption")}</option>
                             {inventoryItems.map((inv) => (
                               <option key={inv.id} value={inv.id}>
-                                {inv.item_name} ({inv.sku}) — Stok: {inv.stock_level} {inv.unit}
+                                {inv.item_name} ({inv.sku}) {t("admin.products.stockPrefix")} {inv.stock_level} {inv.unit}
                               </option>
                             ))}
                           </SelectNative>
@@ -538,7 +537,7 @@ export default function NewProductPage() {
           ) : (
             <div className="border-2 border-dashed border-slate-200 rounded-xl py-10 px-6 text-center bg-white">
               <Package className="h-8 w-8 text-slate-300 mx-auto mb-3" />
-              <p className="text-sm text-slate-500">Henüz stok reçetesi eklenmedi. Yukarıdaki &quot;Kalem Ekle&quot; butonunu kullanın.</p>
+              <p className="text-sm text-slate-500">{t("admin.products.noStockRecipeMessage")}</p>
             </div>
           )}
         </div>

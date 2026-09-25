@@ -19,7 +19,7 @@ export async function ensureQuoteFollowUpTask(quoteId: string) {
 
   const { data: quote } = await supabase
     .from("quotes")
-    .select("id, customer_id, created_by, customer_company")
+    .select("id, customer_id, created_by, customer_company, organization_id")
     .eq("id", quoteId)
     .single();
   if (!quote) return { success: false, error: "Teklif bulunamadı." };
@@ -38,7 +38,7 @@ export async function ensureQuoteFollowUpTask(quoteId: string) {
   const { data: settings } = await supabase
     .from("global_settings")
     .select("quote_followup_days")
-    .limit(1)
+    .eq("organization_id", quote.organization_id)
     .maybeSingle();
   const days = Number(settings?.quote_followup_days ?? 3);
 

@@ -10,6 +10,8 @@ import type { ProductVariant, StockRecipeItem } from '@/types/product.types'
 export async function getCategoriesAction() {
   try {
     const supabase = await createClient()
+    // RLS zaten organization_id = get_my_org_id() ile filtreliyor; ekstra
+    // .eq gerekmiyor, ama okunabilirlik için burada not düşülüyor.
     const { data: categories, error } = await supabase
       .from('categories')
       .select('id, name')
@@ -40,7 +42,7 @@ export interface CreateProductInput {
 
 export async function createProductAction(data: CreateProductInput) {
   try {
-    await assertAdmin()
+    const { organizationId } = await assertAdmin()
     const supabase = await createClient()
 
     // UUID (Category ID) Validasyonu
@@ -69,6 +71,7 @@ export async function createProductAction(data: CreateProductInput) {
         category_id: data.categoryId,
         is_active: true,
         stock_recipe: data.stockRecipe || [],
+        organization_id: organizationId,
       })
       .select()
       .single()
@@ -83,6 +86,7 @@ export async function createProductAction(data: CreateProductInput) {
       const normalizedVariants = normalizeVariants(data.variants)
       const variantsToInsert = normalizedVariants.map((v, i: number) => ({
         product_id: product.id,
+        organization_id: organizationId,
         group_name: v.group_name || `Parametre ${i+1}`,
         sort_order: v.sort_order || i,
         is_required: v.is_required !== undefined ? v.is_required : true,

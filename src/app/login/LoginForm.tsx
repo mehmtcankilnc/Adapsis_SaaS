@@ -9,19 +9,21 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
+import { useLanguage } from '@/lib/i18n/LanguageProvider'
 
 export function LoginForm() {
   const [isPending, setIsPending] = useState(false)
   const searchParams = useSearchParams()
   const errorCode = searchParams.get('error')
+  const { t } = useLanguage()
 
   const getErrorText = (code: string | null) => {
-    if (code === 'missing_credentials') return 'Lütfen tüm alanları doldurun.'
-    if (code === 'invalid_credentials') return 'Hatalı e-posta veya şifre girdiniz.'
-    if (code) return 'Sistemde bir hata oluştu, tekrar deneyin.'
+    if (code === 'missing_credentials') return t('login.errorMissingCredentials')
+    if (code === 'invalid_credentials') return t('login.errorInvalidCredentials')
+    if (code) return t('login.errorGeneric')
     return null
   }
-  
+
   const errorMsg = getErrorText(errorCode)
 
   return (
@@ -46,22 +48,22 @@ export function LoginForm() {
       )}
 
       <div>
-        <Label htmlFor="email" className="block text-sm font-medium text-slate-700">Evrak / Sistem E-postası</Label>
+        <Label htmlFor="email" className="block text-sm font-medium text-slate-700">{t('login.emailLabel')}</Label>
         <div className="mt-1">
-          <Input 
-            id="email" 
-            name="email" 
-            type="email" 
-            autoComplete="email" 
-            required 
-            placeholder="ornek@adapsis.com" 
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            placeholder={t('login.emailPlaceholder')}
             className="w-full"
           />
         </div>
       </div>
 
       <div>
-        <Label htmlFor="password" className="block text-sm font-medium text-slate-700">Sistem Şifresi</Label>
+        <Label htmlFor="password" className="block text-sm font-medium text-slate-700">{t('login.passwordLabel')}</Label>
         <div className="mt-1">
           <Input 
             id="password" 
@@ -84,16 +86,16 @@ export function LoginForm() {
             className="h-4 w-4 text-brand-600 focus:ring-brand-500 border-slate-300 rounded"
           />
           <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-900">
-            Beni Hatırla
+            {t('login.rememberMe')}
           </label>
         </div>
         <div className="text-sm">
-          <button 
-            type="button" 
-            onClick={() => toast.info("Güvenlik protokolü gereği parolalar sistem yöneticisi (Admin) tarafından yönetilir. Şifrenizi sıfırlamak için lütfen IT departmanınızla veya yöneticinizle irtibata geçiniz.")}
+          <button
+            type="button"
+            onClick={() => toast.info(t('login.forgotPasswordToast'))}
             className="font-medium text-brand-600 hover:text-brand-500"
           >
-            Sistem Şifremi Unuttum
+            {t('login.forgotPasswordButton')}
           </button>
         </div>
       </div>
@@ -107,10 +109,10 @@ export function LoginForm() {
         >
           {isPending ? (
             <>
-              <Loader2 className="animate-spin h-5 w-5 mr-2" /> Giriş Yapılıyor...
+              <Loader2 className="animate-spin h-5 w-5 mr-2" /> {t('login.signingIn')}
             </>
           ) : (
-            "Sisteme Giriş Yap"
+            t('login.signIn')
           )}
         </Button>
       </div>

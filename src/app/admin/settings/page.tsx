@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Settings, ShieldCheck } from 'lucide-react'
 import { SettingsClient } from './SettingsClient'
+import { T } from '@/components/layout/T'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,8 +19,8 @@ export default async function SettingsPage() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <ShieldCheck className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-          <h2 className="text-lg font-semibold text-slate-700">Erişim Engellendi</h2>
-          <p className="text-sm text-slate-500 mt-1">Bu sayfa sadece admin kullanıcılar içindir.</p>
+          <h2 className="text-lg font-semibold text-slate-700"><T k="admin.settings.accessDeniedTitle" /></h2>
+          <p className="text-sm text-slate-500 mt-1"><T k="admin.settings.accessDeniedDescription" /></p>
         </div>
       </div>
     )
@@ -32,9 +33,9 @@ export default async function SettingsPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between h-auto py-5 sm:h-20 sm:py-0 gap-4">
             <div>
               <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center">
-                <Settings className="h-6 w-6 text-brand-600 mr-2" /> Ayarlar & Kullanıcı Yönetimi
+                <Settings className="h-6 w-6 text-brand-600 mr-2" /> <T k="admin.settings.pageTitle" />
               </h1>
-              <p className="text-sm text-slate-500 mt-1">Ekip üyelerini yönetin, yeni hesaplar oluşturun ve rolleri düzenleyin.</p>
+              <p className="text-sm text-slate-500 mt-1"><T k="admin.settings.pageSubtitle" /></p>
             </div>
           </div>
         </div>

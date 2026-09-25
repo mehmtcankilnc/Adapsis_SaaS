@@ -7,6 +7,7 @@ import { getErrorMessage } from "@/lib/utils";
 import type { ProductVariant, QuoteConfigurationItem, QuoteStatus } from "@/types/product.types";
 import { ensureQuoteFollowUpTask } from "@/actions/quote-followup.actions";
 import { normalizeConfigurationToArray } from "@/lib/quote-config";
+import { getCurrentProfile } from "@/lib/auth";
 
 interface StockCheckItem {
   inventory_id: string;
@@ -30,14 +31,12 @@ export async function createQuoteAction(data: {
   try {
     const supabase = await createClient();
 
-    // Authenticated user bilgisini al
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const profile = await getCurrentProfile();
 
-    if (!user) {
+    if (!profile) {
       return { success: false, error: "Oturum bulunamadı." };
     }
+    const { user, organizationId } = profile;
 
     if (!data.customer_id) {
       return { success: false, error: "Müşteri seçimi zorunludur." };
@@ -120,7 +119,7 @@ export async function createQuoteAction(data: {
     const { data: settingsRow } = await supabase
       .from("global_settings")
       .select("discount_approval_threshold")
-      .limit(1)
+      .eq("organization_id", organizationId)
       .maybeSingle();
     const discountThreshold = Number(settingsRow?.discount_approval_threshold ?? 5);
 
@@ -143,6 +142,7 @@ export async function createQuoteAction(data: {
         status: quoteStatus,
         discount_percentage: discountPct,
         created_by: user.id,
+        organization_id: organizationId,
         is_read_by_admin: false,
         is_read_by_sales: true,
       })

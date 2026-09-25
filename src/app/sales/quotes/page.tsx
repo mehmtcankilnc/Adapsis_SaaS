@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { QuotesListClient } from './QuotesListClient'
 import { markQuotesAsReadAction } from '@/actions/quote.actions'
+import { T } from '@/components/layout/T'
+import { dictionary } from '@/lib/i18n/dictionary'
 
 export const dynamic = 'force-dynamic'
 
@@ -61,12 +63,12 @@ export default async function QuotesPage() {
         .in('id', userIds)
 
       const profileMap = new Map(
-        (profilesData || []).map(p => [p.id, p.full_name || 'Bilinmeyen'])
+        (profilesData || []).map(p => [p.id, p.full_name || dictionary.tr['sales.quotes.unknown']])
       )
 
       quotesWithProfiles = quotesWithProfiles.map(q => ({
         ...q,
-        creator_name: q.created_by ? (profileMap.get(q.created_by) || 'Bilinmeyen') : 'Sistem'
+        creator_name: q.created_by ? (profileMap.get(q.created_by) || dictionary.tr['sales.quotes.unknown']) : dictionary.tr['sales.quotes.creatorFallbackSystem']
       }))
     }
   }
@@ -78,13 +80,13 @@ export default async function QuotesPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between h-auto py-4 sm:h-20 sm:py-0 gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Tüm Teklifler</h1>
-              <p className="text-sm text-slate-500 mt-1">Sistemdeki tüm aktif ve geçmiş teklif kayıtları.</p>
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight"><T k="sales.quotes.pageTitle" /></h1>
+              <p className="text-sm text-slate-500 mt-1"><T k="sales.quotes.pageDescription" /></p>
             </div>
-            
+
             <Link href="/sales/new-quote">
               <Button variant="primary">
-                <Plus className="mr-2 h-4 w-4" /> Yeni Teklif Oluştur
+                <Plus className="mr-2 h-4 w-4" /> <T k="sales.quotes.createNew" />
               </Button>
             </Link>
           </div>

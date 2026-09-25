@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { TrendingUp, ShieldCheck } from 'lucide-react'
 import { getPipelineAnalyticsAction } from '@/actions/pipeline-analytics.actions'
 import { PipelineAnalyticsClient } from './PipelineAnalyticsClient'
+import { T } from '@/components/layout/T'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,8 +17,8 @@ export default async function PipelinePage() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <ShieldCheck className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-          <h2 className="text-lg font-semibold text-slate-700">Erişim Engellendi</h2>
-          <p className="text-sm text-slate-500 mt-1">Bu sayfa sadece admin kullanıcılar içindir.</p>
+          <h2 className="text-lg font-semibold text-slate-700"><T k="admin.pipeline.accessDeniedTitle" /></h2>
+          <p className="text-sm text-slate-500 mt-1"><T k="admin.pipeline.accessDeniedDescription" /></p>
         </div>
       </div>
     )
@@ -32,9 +33,9 @@ export default async function PipelinePage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between h-auto py-5 sm:h-20 sm:py-0 gap-4">
             <div>
               <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center">
-                <TrendingUp className="h-6 w-6 text-brand-600 mr-2" /> Satış Hattı & Gelir Tahmini
+                <TrendingUp className="h-6 w-6 text-brand-600 mr-2" /> <T k="admin.pipeline.pageTitle" />
               </h1>
-              <p className="text-sm text-slate-500 mt-1">Açık fırsatların ağırlıklı değeri, aylık gelir tahmini ve hedef karşılaştırması.</p>
+              <p className="text-sm text-slate-500 mt-1"><T k="admin.pipeline.pageDescription" /></p>
             </div>
           </div>
         </div>

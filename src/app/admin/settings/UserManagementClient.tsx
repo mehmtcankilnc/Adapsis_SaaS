@@ -38,6 +38,8 @@ import {
   deleteUserAction,
 } from '@/actions/user-management.actions'
 import { upsertRepQuotaAction } from '@/actions/quota.actions'
+import { useLanguage } from '@/lib/i18n/LanguageProvider'
+import { localeFor } from '@/lib/i18n/format'
 
 interface UserRow {
   id: string
@@ -51,6 +53,7 @@ interface UserRow {
 }
 
 export function UserManagementClient({ currentUserId }: { currentUserId: string }) {
+  const { t, lang } = useLanguage()
   // ─── Data State ───
   const [users, setUsers] = useState<UserRow[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -121,7 +124,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
       setCreateForm({ full_name: '', email: '', password: '', role: 'sales' })
       fetchUsers()
     } else {
-      setCreateError(result.error || 'Kullanıcı oluşturulamadı.')
+      setCreateError(result.error || t('admin.settings.users.createUserErrorFallback'))
     }
   }
 
@@ -147,7 +150,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
       setEditUser(null)
       fetchUsers()
     } else {
-      setEditError(result.error || quotaResult.error || 'Güncelleme başarısız.')
+      setEditError(result.error || quotaResult.error || t('admin.settings.users.updateUserErrorFallback'))
     }
   }
 
@@ -163,13 +166,13 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
       setDeleteTarget(null)
       fetchUsers()
     } else {
-      setDeleteError(result.error || 'Silme başarısız.')
+      setDeleteError(result.error || t('admin.settings.users.deleteUserErrorFallback'))
     }
   }
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '—'
-    return new Intl.DateTimeFormat('tr-TR', {
+    return new Intl.DateTimeFormat(localeFor(lang), {
       day: '2-digit', month: 'short', year: 'numeric'
     }).format(new Date(dateStr))
   }
@@ -201,7 +204,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
           </div>
           <div>
             <p className="text-2xl font-bold text-slate-900">{users.length}</p>
-            <p className="text-xs text-slate-500 font-medium">Toplam Kullanıcı</p>
+            <p className="text-xs text-slate-500 font-medium">{t('admin.settings.users.statTotalUsers')}</p>
           </div>
         </div>
         <div className="bg-white border border-slate-200 rounded-xl p-5 flex items-center gap-4">
@@ -210,7 +213,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
           </div>
           <div>
             <p className="text-2xl font-bold text-slate-900">{adminCount}</p>
-            <p className="text-xs text-slate-500 font-medium">Admin</p>
+            <p className="text-xs text-slate-500 font-medium">{t('admin.settings.users.statAdmins')}</p>
           </div>
         </div>
         <div className="bg-white border border-slate-200 rounded-xl p-5 flex items-center gap-4">
@@ -219,7 +222,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
           </div>
           <div>
             <p className="text-2xl font-bold text-slate-900">{salesCount}</p>
-            <p className="text-xs text-slate-500 font-medium">Satış Personeli</p>
+            <p className="text-xs text-slate-500 font-medium">{t('admin.settings.users.statSalesStaff')}</p>
           </div>
         </div>
       </div>
@@ -230,7 +233,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="İsim, e-posta veya role göre ara..."
+            placeholder={t('admin.settings.users.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-sm"
@@ -247,7 +250,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
             setShowPassword(false)
           }}
         >
-          <UserPlus className="mr-2 h-4 w-4" /> Yeni Kullanıcı Ekle
+          <UserPlus className="mr-2 h-4 w-4" /> {t('admin.settings.users.addUserButton')}
         </Button>
       </div>
 
@@ -257,13 +260,13 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
           <table className="w-full text-left border-collapse whitespace-nowrap">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200">
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Kullanıcı</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">E-posta</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Rol</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Kayıt Tarihi</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Hedef (Bu Ay)</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Komisyon %</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Eylemler</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t('admin.settings.users.tableHeaderUser')}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t('admin.settings.users.tableHeaderEmail')}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">{t('admin.settings.users.tableHeaderRole')}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t('admin.settings.users.tableHeaderCreatedAt')}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t('admin.settings.users.tableHeaderTarget')}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t('admin.settings.users.tableHeaderCommission')}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">{t('admin.settings.users.tableHeaderActions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
@@ -289,15 +292,15 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                   <td colSpan={7} className="px-0 py-0 bg-slate-50/30">
                     <EmptyState
                       icon={Users}
-                      title={search ? "Sonuç Bulunamadı" : "Henüz Kullanıcı Yok"}
-                      description={search ? `"${search}" ile eşleşen bir kullanıcı bulunamadı.` : "Sistemde kayıtlı bir kullanıcı bulunmuyor."}
+                      title={search ? t('admin.settings.users.emptyNoResultsTitle') : t('admin.settings.users.emptyNoUsersTitle')}
+                      description={search ? t('admin.settings.users.emptyNoResultsDescription').replace('{search}', search) : t('admin.settings.users.emptyNoUsersDescription')}
                       action={search ? (
                         <Button variant="outline" onClick={() => setSearch('')}>
-                          Aramayı Temizle
+                          {t('admin.settings.users.clearSearchButton')}
                         </Button>
                       ) : (
                         <Button variant="primary" onClick={() => setShowCreate(true)}>
-                          <UserPlus className="mr-2 h-4 w-4" /> Kullanıcı Oluştur
+                          <UserPlus className="mr-2 h-4 w-4" /> {t('admin.settings.users.createUserButton')}
                         </Button>
                       )}
                     />
@@ -329,7 +332,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                               {u.full_name}
                               {isSelf && (
                                 <span className="text-[10px] bg-brand-50 text-brand-600 px-1.5 py-0.5 rounded-full font-bold border border-brand-100">
-                                  SİZ
+                                  {t('admin.settings.users.youBadge')}
                                 </span>
                               )}
                             </p>
@@ -347,7 +350,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                           variant={u.role === 'admin' ? 'warning' : 'success'}
                           className="px-3"
                         >
-                          {u.role === 'admin' ? 'Admin' : 'Satış'}
+                          {u.role === 'admin' ? t('admin.settings.users.roleAdmin') : t('admin.settings.users.roleSales')}
                         </Badge>
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-500 font-medium">
@@ -369,7 +372,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                             onClick={() => openEditDialog(u)}
                             className="h-8 text-xs font-semibold px-3 bg-white hover:bg-brand-50 hover:text-brand-700 border-slate-200"
                           >
-                            <Pencil className="h-3 w-3 mr-1.5" /> Düzenle
+                            <Pencil className="h-3 w-3 mr-1.5" /> {t('admin.settings.users.editButton')}
                           </Button>
                           {!isSelf && (
                             <Button
@@ -378,7 +381,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                               onClick={() => openDeleteDialog(u)}
                               className="h-8 text-xs font-semibold px-3 text-red-500 hover:text-red-700 hover:bg-red-50"
                             >
-                              <Trash2 className="h-3 w-3 mr-1.5" /> Sil
+                              <Trash2 className="h-3 w-3 mr-1.5" /> {t('admin.settings.users.deleteButton')}
                             </Button>
                           )}
                         </div>
@@ -398,9 +401,9 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
-            <DialogTitle>Yeni Kullanıcı Oluştur</DialogTitle>
+            <DialogTitle>{t('admin.settings.users.createDialogTitle')}</DialogTitle>
             <DialogDescription>
-              Sisteme yeni bir ekip üyesi ekleyin. Hesap oluşturulduktan sonra kullanıcı belirtilen e-posta ve şifre ile giriş yapabilir.
+              {t('admin.settings.users.createDialogDescription')}
             </DialogDescription>
           </DialogHeader>
 
@@ -415,7 +418,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
             {/* İsim */}
             <div className="space-y-2">
               <Label htmlFor="create-name">
-                Ad Soyad <span className="text-red-500">*</span>
+                {t('admin.settings.users.fullNameLabel')} <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -423,7 +426,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                   id="create-name"
                   value={createForm.full_name}
                   onChange={(e) => setCreateForm(p => ({ ...p, full_name: e.target.value }))}
-                  placeholder="Örn: Mehmet Yılmaz"
+                  placeholder={t('admin.settings.users.fullNamePlaceholder')}
                   className="pl-10"
                 />
               </div>
@@ -432,7 +435,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
             {/* E-posta */}
             <div className="space-y-2">
               <Label htmlFor="create-email">
-                E-posta Adresi <span className="text-red-500">*</span>
+                {t('admin.settings.users.emailLabel')} <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -441,7 +444,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                   type="email"
                   value={createForm.email}
                   onChange={(e) => setCreateForm(p => ({ ...p, email: e.target.value }))}
-                  placeholder="ornek@adapsis.com"
+                  placeholder={t('admin.settings.users.emailPlaceholder')}
                   className="pl-10"
                 />
               </div>
@@ -450,7 +453,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
             {/* Şifre */}
             <div className="space-y-2">
               <Label htmlFor="create-password">
-                Şifre <span className="text-red-500">*</span>
+                {t('admin.settings.users.passwordLabel')} <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
                 <Input
@@ -458,7 +461,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                   type={showPassword ? 'text' : 'password'}
                   value={createForm.password}
                   onChange={(e) => setCreateForm(p => ({ ...p, password: e.target.value }))}
-                  placeholder="En az 6 karakter"
+                  placeholder={t('admin.settings.users.passwordPlaceholder')}
                   className="pr-10"
                 />
                 <button
@@ -470,13 +473,13 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                 </button>
               </div>
               {createForm.password.length > 0 && createForm.password.length < 6 && (
-                <p className="text-xs text-red-500 font-medium">Şifre en az 6 karakter olmalıdır.</p>
+                <p className="text-xs text-red-500 font-medium">{t('admin.settings.users.passwordTooShort')}</p>
               )}
             </div>
 
             {/* Rol Seçimi */}
             <div className="space-y-2">
-              <Label>Rol Atama</Label>
+              <Label>{t('admin.settings.users.roleAssignLabel')}</Label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
@@ -495,8 +498,8 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                       </div>
                     )}
                   </div>
-                  <p className={`text-sm font-semibold ${createForm.role === 'sales' ? 'text-brand-900' : 'text-slate-700'}`}>Satış</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Teklif oluşturma, katalog görüntüleme</p>
+                  <p className={`text-sm font-semibold ${createForm.role === 'sales' ? 'text-brand-900' : 'text-slate-700'}`}>{t('admin.settings.users.roleSales')}</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">{t('admin.settings.users.roleSalesDescription')}</p>
                 </button>
 
                 <button
@@ -516,8 +519,8 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                       </div>
                     )}
                   </div>
-                  <p className={`text-sm font-semibold ${createForm.role === 'admin' ? 'text-amber-900' : 'text-slate-700'}`}>Admin</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Tam yetki, kullanıcı yönetimi</p>
+                  <p className={`text-sm font-semibold ${createForm.role === 'admin' ? 'text-amber-900' : 'text-slate-700'}`}>{t('admin.settings.users.roleAdmin')}</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">{t('admin.settings.users.roleAdminDescription')}</p>
                 </button>
               </div>
             </div>
@@ -525,7 +528,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setShowCreate(false)} disabled={isCreating}>
-              İptal
+              {t('common.cancel')}
             </Button>
             <Button
               variant="primary"
@@ -533,9 +536,9 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
               disabled={isCreating || !createForm.full_name.trim() || !createForm.email.includes('@') || createForm.password.length < 6}
             >
               {isCreating ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Oluşturuluyor...</>
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('admin.settings.users.creatingButton')}</>
               ) : (
-                <><UserPlus className="mr-2 h-4 w-4" /> Kullanıcıyı Oluştur</>
+                <><UserPlus className="mr-2 h-4 w-4" /> {t('admin.settings.users.createUserSubmitButton')}</>
               )}
             </Button>
           </DialogFooter>
@@ -549,9 +552,9 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
         <Dialog open={!!editUser} onOpenChange={(v) => !v && setEditUser(null)}>
           <DialogContent className="sm:max-w-[440px]">
             <DialogHeader>
-              <DialogTitle>Kullanıcıyı Düzenle</DialogTitle>
+              <DialogTitle>{t('admin.settings.users.editDialogTitle')}</DialogTitle>
               <DialogDescription>
-                <strong className="text-slate-800">{editUser.email}</strong> hesabının bilgilerini güncelleyin.
+                <strong className="text-slate-800">{editUser.email}</strong> {t('admin.settings.users.editDialogDescriptionSuffix')}
               </DialogDescription>
             </DialogHeader>
 
@@ -563,7 +566,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="edit-name">Ad Soyad</Label>
+                <Label htmlFor="edit-name">{t('admin.settings.users.fullNameLabel')}</Label>
                 <Input
                   id="edit-name"
                   value={editForm.full_name}
@@ -572,7 +575,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
               </div>
 
               <div className="space-y-2">
-                <Label>Rol</Label>
+                <Label>{t('admin.settings.users.tableHeaderRole')}</Label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
@@ -584,7 +587,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                     }`}
                   >
                     <p className={`text-sm font-semibold ${editForm.role === 'sales' ? 'text-brand-700' : 'text-slate-600'}`}>
-                      Satış
+                      {t('admin.settings.users.roleSales')}
                     </p>
                   </button>
                   <button
@@ -597,7 +600,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                     }`}
                   >
                     <p className={`text-sm font-semibold ${editForm.role === 'admin' ? 'text-amber-700' : 'text-slate-600'}`}>
-                      Admin
+                      {t('admin.settings.users.roleAdmin')}
                     </p>
                   </button>
                 </div>
@@ -606,7 +609,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
               {editForm.role === 'sales' && (
                 <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100">
                   <div className="space-y-2 col-span-2">
-                    <Label htmlFor="edit-target">Bu Ayın Hedefi</Label>
+                    <Label htmlFor="edit-target">{t('admin.settings.users.targetLabel')}</Label>
                     <div className="flex gap-2">
                       <Input
                         id="edit-target"
@@ -625,7 +628,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                     </div>
                   </div>
                   <div className="space-y-2 col-span-2">
-                    <Label htmlFor="edit-commission">Komisyon Oranı (%)</Label>
+                    <Label htmlFor="edit-commission">{t('admin.settings.users.commissionRateLabel')}</Label>
                     <Input
                       id="edit-commission"
                       type="number"
@@ -642,7 +645,7 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
 
             <DialogFooter>
               <Button variant="ghost" onClick={() => setEditUser(null)} disabled={isEditing}>
-                İptal
+                {t('common.cancel')}
               </Button>
               <Button
                 variant="primary"
@@ -650,9 +653,9 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                 disabled={isEditing || !editForm.full_name.trim()}
               >
                 {isEditing ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Kaydediliyor...</>
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('admin.settings.users.savingButton')}</>
                 ) : (
-                  <><Check className="mr-2 h-4 w-4" /> Değişiklikleri Kaydet</>
+                  <><Check className="mr-2 h-4 w-4" /> {t('admin.settings.users.saveChangesButton')}</>
                 )}
               </Button>
             </DialogFooter>
@@ -668,10 +671,10 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
           <DialogContent className="sm:max-w-[420px]">
             <DialogHeader>
               <DialogTitle className="text-red-700 flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5" /> Kullanıcıyı Sil
+                <AlertTriangle className="h-5 w-5" /> {t('admin.settings.users.deleteDialogTitle')}
               </DialogTitle>
               <DialogDescription>
-                Bu işlem geri alınamaz. Kullanıcının tüm verileri kalıcı olarak silinecektir.
+                {t('admin.settings.users.deleteDialogDescription')}
               </DialogDescription>
             </DialogHeader>
 
@@ -691,20 +694,21 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                     <p className="text-sm font-semibold text-slate-900">{deleteTarget.full_name}</p>
                     <p className="text-xs text-slate-500">{deleteTarget.email}</p>
                     <Badge variant={deleteTarget.role === 'admin' ? 'warning' : 'success'} className="mt-1 text-[10px]">
-                      {deleteTarget.role === 'admin' ? 'Admin' : 'Satış'}
+                      {deleteTarget.role === 'admin' ? t('admin.settings.users.roleAdmin') : t('admin.settings.users.roleSales')}
                     </Badge>
                   </div>
                 </div>
               </div>
 
               <p className="text-sm text-slate-600 mt-4 leading-relaxed">
-                <strong className="text-slate-900">{deleteTarget.full_name}</strong> adlı kullanıcıyı silmek istediğinize emin misiniz?
+                <strong className="text-slate-900">{deleteTarget.full_name}</strong>{' '}
+                {t('admin.settings.users.deleteConfirmMessage').replace('{name}', '').trim()}
               </p>
             </div>
 
             <DialogFooter>
               <Button variant="ghost" onClick={() => setDeleteTarget(null)} disabled={isDeleting}>
-                Vazgeç
+                {t('admin.settings.users.giveUpButton')}
               </Button>
               <Button
                 variant="destructive"
@@ -713,9 +717,9 @@ export function UserManagementClient({ currentUserId }: { currentUserId: string 
                 disabled={isDeleting}
               >
                 {isDeleting ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Siliniyor...</>
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('admin.settings.users.deletingButton')}</>
                 ) : (
-                  <><Trash2 className="mr-2 h-4 w-4" /> Evet, Sil</>
+                  <><Trash2 className="mr-2 h-4 w-4" /> {t('admin.settings.users.confirmDeleteButton')}</>
                 )}
               </Button>
             </DialogFooter>

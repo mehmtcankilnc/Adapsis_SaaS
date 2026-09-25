@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { RequestUpdateButton } from '@/components/shared/RequestUpdateButton'
 import { ProductCategoryFilter } from '@/components/shared/ProductCategoryFilter'
+import { T } from '@/components/layout/T'
+import { FormattedDate } from '@/components/layout/FormattedDate'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,12 +60,6 @@ export default async function ProductsPage({
     }).format(amount)
   }
 
-  const formatDate = (dateStr: string) => {
-    return new Intl.DateTimeFormat('tr-TR', {
-      day: '2-digit', month: 'short', year: 'numeric'
-    }).format(new Date(dateStr))
-  }
-
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="bg-white border-b border-slate-200">
@@ -71,15 +67,15 @@ export default async function ProductsPage({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between h-auto py-5 sm:h-20 sm:py-0 gap-4">
             <div>
               <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center">
-                <Box className="h-6 w-6 text-brand-600 mr-2" /> Ürün Kataloğu
+                <Box className="h-6 w-6 text-brand-600 mr-2" /> <T k="admin.products.catalogTitle" />
               </h1>
-              <p className="text-sm text-slate-500 mt-1">Sistemdeki tüm satılabilir ana ürünler ve konfigürasyon modellemeleri.</p>
+              <p className="text-sm text-slate-500 mt-1"><T k="admin.products.catalogDescription" /></p>
             </div>
             <div className="flex gap-2">
               {role !== 'sales' && (
                 <Link href="/admin/products/new">
                   <Button variant="primary" className="font-medium">
-                    <Plus className="mr-2 h-4 w-4" /> Yeni Ürün Ekle
+                    <Plus className="mr-2 h-4 w-4" /> <T k="admin.products.newProductButton" />
                   </Button>
                 </Link>
               )}
@@ -100,31 +96,31 @@ export default async function ProductsPage({
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-200">
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">SKU</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Açıklama / Ürün Adı</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Kategori</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Taban Fiyat</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Oluşturulma</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Durum</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Eylemler</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider"><T k="admin.products.columnDescriptionName" /></th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider"><T k="admin.products.columnCategory" /></th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right"><T k="admin.products.columnBasePrice" /></th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider"><T k="admin.products.columnCreatedAt" /></th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center"><T k="admin.products.columnStatus" /></th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right"><T k="admin.products.columnActions" /></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {(!products || products.length === 0) ? (
                   <tr>
                     <td colSpan={7} className="px-0 py-0 bg-slate-50/30">
-                      <EmptyState 
-                        icon={PackageOpen} 
-                        title="Henüz Ürün Eklenmemiş" 
-                        description="Kataloğunuz şu anda boş. Satışlara ve konfigürasyonlara başlamak için sisteminize ilk ürününüzü ekleyin." 
+                      <EmptyState
+                        icon={PackageOpen}
+                        title={<T k="admin.products.emptyTitle" />}
+                        description={<T k="admin.products.emptyDescription" />}
                         action={
                         role !== 'sales' ? (
                           <Link href="/admin/products/new">
                             <Button variant="primary" className="mt-2 shadow-md">
-                              <Plus className="h-4 w-4 mr-2"/> Ürün Oluştur
+                              <Plus className="h-4 w-4 mr-2"/> <T k="admin.products.createProductButton" />
                             </Button>
                           </Link>
                         ) : null
-                        } 
+                        }
                       />
                     </td>
                   </tr>
@@ -135,17 +131,19 @@ export default async function ProductsPage({
                       <td className="px-6 py-4 text-sm font-bold text-slate-900">{p.name}</td>
                       <td className="px-6 py-4 text-sm text-slate-500 font-medium">{p.category?.name || '-'}</td>
                       <td className="px-6 py-4 text-sm font-bold text-brand-700 text-right">{formatPrice(p.base_price, p.base_currency)}</td>
-                      <td className="px-6 py-4 text-sm font-medium text-slate-500">{formatDate(p.created_at)}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-slate-500">
+                        <FormattedDate value={p.created_at} options={{ day: '2-digit', month: 'short', year: 'numeric' }} />
+                      </td>
                       <td className="px-6 py-4 text-center">
                         <Badge variant={p.is_active ? 'success' : 'secondary'} className="px-3 border-none bg-opacity-20 shadow-none">
-                          {p.is_active ? 'Aktif' : 'Pasif'}
+                          {p.is_active ? <T k="admin.products.statusActive" /> : <T k="admin.products.statusInactive" />}
                         </Badge>
                       </td>
                       <td className="px-6 py-4 text-right space-x-2">
                         {role !== 'sales' ? (
                           <Link href={`/admin/products/${p.id}/edit`}>
                             <Button variant="outline" className="h-8 text-xs font-semibold px-3 bg-white hover:bg-brand-50 hover:text-brand-700 border-slate-200">
-                              <Pencil className="h-3 w-3 mr-1.5" /> Düzenle
+                              <Pencil className="h-3 w-3 mr-1.5" /> <T k="admin.products.editButton" />
                             </Button>
                           </Link>
                         ) : (

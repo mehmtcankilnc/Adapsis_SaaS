@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { CustomersClient } from "./CustomersClient";
 import { Users } from "lucide-react";
+import { T } from "@/components/layout/T";
 
 export const dynamic = "force-dynamic";
 
@@ -22,10 +23,10 @@ export default async function CustomersPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col py-6">
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center">
-              <Users className="h-6 w-6 text-brand-600 mr-2" /> Müşteri Veritabanı
+              <Users className="h-6 w-6 text-brand-600 mr-2" /> <T k="customers.pageTitle" />
             </h1>
             <p className="text-sm text-slate-500 mt-1">
-              Firma bilgilerini, yetkili kişileri ve iletişim detaylarını yönetin.
+              <T k="customers.pageDescription" />
             </p>
           </div>
         </div>

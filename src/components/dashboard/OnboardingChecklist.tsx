@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { CheckCircle2, Circle, X, Rocket } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { useLanguage } from '@/lib/i18n/LanguageProvider'
 
 interface Step {
   key: string
@@ -26,6 +27,7 @@ export function OnboardingChecklist({
   salesUserCount: number
   userId: string
 }) {
+  const { t } = useLanguage()
   const storageKey = `onboarding_dismissed_${userId}`
   const [dismissed, setDismissed] = useState(true)
 
@@ -45,26 +47,26 @@ export function OnboardingChecklist({
   const steps: Step[] = [
     {
       key: 'product',
-      title: 'İlk ürününüzü oluşturun',
-      description: 'Satacağınız ürünü/hizmeti tanımlayın, fiyatını ve varyasyonlarını belirleyin.',
+      title: t('onboarding.step.product.title'),
+      description: t('onboarding.step.product.description'),
       href: '/admin/products/new',
-      cta: 'Ürün Oluştur',
+      cta: t('onboarding.step.product.cta'),
       done: productCount > 0,
     },
     {
       key: 'customer',
-      title: 'İlk müşterinizi ekleyin',
-      description: 'Teklif göndereceğiniz firma bilgilerini kaydedin.',
+      title: t('onboarding.step.customer.title'),
+      description: t('onboarding.step.customer.description'),
       href: '/shared/customers',
-      cta: 'Müşteri Ekle',
+      cta: t('onboarding.step.customer.cta'),
       done: customerCount > 0,
     },
     {
       key: 'sales-user',
-      title: 'Bir satış kullanıcısı oluşturun',
-      description: 'Ekip üyelerinizin teklif oluşturabilmesi için satış rolünde bir hesap açın.',
+      title: t('onboarding.step.salesUser.title'),
+      description: t('onboarding.step.salesUser.description'),
       href: '/admin/settings',
-      cta: 'Kullanıcı Ekle',
+      cta: t('onboarding.step.salesUser.cta'),
       done: salesUserCount > 0,
     },
   ]
@@ -93,9 +95,9 @@ export function OnboardingChecklist({
               <Rocket className="h-4 w-4 text-brand-600" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Sisteme Hoş Geldiniz</h3>
+              <h3 className="text-sm font-bold text-slate-900">{t('onboarding.welcomeTitle')}</h3>
               <p className="text-xs text-slate-500">
-                {completedCount}/{steps.length} adım tamamlandı — başlamak için aşağıdaki adımları izleyin.
+                {completedCount}/{steps.length}{t('onboarding.progressSuffix')}
               </p>
             </div>
           </div>
@@ -103,7 +105,7 @@ export function OnboardingChecklist({
             type="button"
             onClick={handleSkip}
             className="text-slate-400 hover:text-slate-600 transition-colors shrink-0"
-            title="Atla"
+            title={t('onboarding.skipTooltip')}
           >
             <X className="h-4 w-4" />
           </button>

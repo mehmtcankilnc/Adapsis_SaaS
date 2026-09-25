@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { UserManagementClient } from "./UserManagementClient";
 import { GeneralSettingsForm } from "./GeneralSettingsForm";
 import type { GlobalSettings } from "@/types/product.types";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export function SettingsClient({
   settings,
@@ -13,6 +14,7 @@ export function SettingsClient({
   settings: GlobalSettings | null;
   currentUserId: string;
 }) {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<"general" | "users">("general");
 
   return (
@@ -29,7 +31,7 @@ export function SettingsClient({
                   isSelected ? "text-brand-700" : "text-slate-500 hover:text-slate-700"
                 }`}
               >
-                {tab === "general" ? "Genel Ayarlar" : "Kullanıcı Yönetimi"}
+                {tab === "general" ? t("admin.settings.tabs.general") : t("admin.settings.tabs.users")}
                 {isSelected && (
                   <motion.div
                     layoutId="pill"

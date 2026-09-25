@@ -27,8 +27,11 @@ import {
 } from "@/components/ui/dialog";
 import { createCustomerAction } from "@/actions/customer.actions";
 import type { Customer } from "@/types/product.types";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { localeFor } from "@/lib/i18n/format";
 
 export function CustomersClient({ initialCustomers }: { initialCustomers: Customer[] }) {
+  const { t, lang } = useLanguage();
   const router = useRouter();
   const [customers, setCustomers] = useState(initialCustomers);
   const [search, setSearch] = useState("");
@@ -65,7 +68,7 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
 
     if (res.success && res.customer) {
       setCustomers([res.customer, ...customers]);
-      toast.success("Müşteri oluşturuldu");
+      toast.success(t("customers.toast.createSuccess"));
       setIsDialogOpen(false);
       setCompanyName("");
       setContactName("");
@@ -73,8 +76,8 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
       setPhone("");
       setAddress("");
     } else {
-      toast.error("Müşteri oluşturulamadı", {
-        description: res.error || "Beklenmeyen bir hata oluştu.",
+      toast.error(t("customers.toast.createError"), {
+        description: res.error || t("customers.errors.unexpected"),
       });
     }
   };
@@ -85,7 +88,7 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
         <div className="relative w-full sm:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
-            placeholder="Müşteri ara..."
+            placeholder={t("customers.searchPlaceholder")}
             className="pl-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -95,44 +98,44 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button variant="primary">
-              <Plus className="mr-2 h-4 w-4" /> Yeni Müşteri Ekle
+              <Plus className="mr-2 h-4 w-4" /> {t("customers.addCustomer")}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Yeni Müşteri Oluştur</DialogTitle>
+              <DialogTitle>{t("customers.createDialog.title")}</DialogTitle>
               <DialogDescription>
-                Müşteri veritabanına yeni bir kayıt ekleyin.
+                {t("customers.createDialog.description")}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 px-5 py-4 overflow-y-auto">
               <div className="space-y-2">
-                <Label>Firma Adı <span className="text-red-500">*</span></Label>
-                <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Örn: ABC Lojistik A.Ş." />
+                <Label>{t("customers.form.companyName")} <span className="text-red-500">*</span></Label>
+                <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder={t("customers.form.companyNamePlaceholder")} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Yetkili Kişi</Label>
-                  <Input value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="Ahmet Yılmaz" />
+                  <Label>{t("customers.form.contactName")}</Label>
+                  <Input value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder={t("customers.form.contactNamePlaceholder")} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Telefon</Label>
-                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+90 5XX XXX XX XX" />
+                  <Label>{t("customers.form.phone")}</Label>
+                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t("customers.form.phonePlaceholder")} />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>E-posta Adresi</Label>
-                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="info@abclojistik.com" />
+                <Label>{t("customers.form.email")}</Label>
+                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("customers.form.emailPlaceholder")} />
               </div>
               <div className="space-y-2">
-                <Label>Firma Adresi</Label>
-                <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Açık adres bilgisi..." />
+                <Label>{t("customers.form.address")}</Label>
+                <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder={t("customers.form.addressPlaceholder")} />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="ghost" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>İptal</Button>
+              <Button variant="ghost" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>{t("common.cancel")}</Button>
               <Button variant="primary" onClick={handleCreateCustomer} disabled={isSubmitting || !companyName.trim()}>
-                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Kaydediliyor...</> : "Kaydet"}
+                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("customers.saving")}</> : t("customers.save")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -143,23 +146,23 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
         <div className="p-8 bg-slate-50/30">
           <EmptyState
             icon={search ? Search : Users}
-            title={search ? "Sonuç Bulunamadı" : "Henüz Müşteri Yok"}
+            title={search ? t("customers.emptyState.noResultsTitle") : t("customers.emptyState.noCustomersTitle")}
             description={
               search
-                ? `"${search}" ile eşleşen bir müşteri bulunamadı.`
-                : "Sistemde kayıtlı bir müşteri bulunmuyor. İlk müşterinizi ekleyerek başlayın."
+                ? `"${search}${t("customers.emptyState.noResultsDescriptionSuffix")}`
+                : t("customers.emptyState.noCustomersDescription")
             }
             action={
               search ? (
                 <Button variant="outline" onClick={() => setSearch("")}>
-                  Aramayı Temizle
+                  {t("customers.clearSearch")}
                 </Button>
               ) : (
                 <Button
                   variant="primary"
                   onClick={() => setIsDialogOpen(true)}
                 >
-                  <Plus className="mr-2 h-4 w-4" /> Yeni Müşteri Ekle
+                  <Plus className="mr-2 h-4 w-4" /> {t("customers.addCustomer")}
                 </Button>
               )
             }
@@ -169,11 +172,11 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Firma Adı</TableHead>
-              <TableHead>Yetkili Kişi</TableHead>
-              <TableHead>İletişim</TableHead>
-              <TableHead>Adres</TableHead>
-              <TableHead className="text-right">Kayıt Tarihi</TableHead>
+              <TableHead>{t("customers.form.companyName")}</TableHead>
+              <TableHead>{t("customers.form.contactName")}</TableHead>
+              <TableHead>{t("customers.table.contact")}</TableHead>
+              <TableHead>{t("customers.form.address")}</TableHead>
+              <TableHead className="text-right">{t("customers.table.registrationDate")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -201,7 +204,7 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
                   {customer.address || "—"}
                 </TableCell>
                 <TableCell className="text-right text-slate-500 text-sm">
-                  {customer.created_at ? new Date(customer.created_at).toLocaleDateString("tr-TR") : "—"}
+                  {customer.created_at ? new Date(customer.created_at).toLocaleDateString(localeFor(lang)) : "—"}
                 </TableCell>
               </TableRow>
             ))}

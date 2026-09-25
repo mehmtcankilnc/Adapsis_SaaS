@@ -36,7 +36,7 @@ export interface UpdateProductInput {
 
 export async function updateProductAction(productId: string, data: UpdateProductInput) {
   try {
-    await assertAdmin()
+    const { organizationId } = await assertAdmin()
     const supabase = await createClient()
 
     if (!data.name || typeof data.name !== 'string' || data.name.trim() === '') {
@@ -86,6 +86,7 @@ export async function updateProductAction(productId: string, data: UpdateProduct
       if (normalizedVariants.length > 0) {
         const variantsToUpsert = normalizedVariants.map((v, i: number) => ({
           product_id: productId,
+          organization_id: organizationId,
           group_name: v.group_name || `Parametre ${i + 1}`,
           sort_order: v.sort_order || i,
           is_required: v.is_required !== undefined ? v.is_required : true,

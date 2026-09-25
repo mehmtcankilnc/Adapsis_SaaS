@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { getErrorMessage } from "@/lib/utils";
 import { normalizeConfigurationToArray } from "@/lib/quote-config";
+import { getCurrentProfile } from "@/lib/auth";
 import type { ProductVariant } from "@/types/product.types";
 
 export async function getTemplatesByProductAction(productId: string) {
@@ -34,8 +35,8 @@ export async function createTemplateAction(data: {
   try {
     const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const profile = await getCurrentProfile();
+    if (!profile) {
       return { success: false, error: "Oturum bulunamadı." };
     }
 
@@ -54,7 +55,8 @@ export async function createTemplateAction(data: {
         product_id: data.product_id,
         name: data.name.trim(),
         configuration: configArray,
-        created_by: user.id,
+        created_by: profile.user.id,
+        organization_id: profile.organizationId,
       })
       .select("id, name, configuration, created_by")
       .single();

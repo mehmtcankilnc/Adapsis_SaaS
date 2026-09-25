@@ -16,9 +16,12 @@ import {
 import { Search, CheckCircle2, XCircle, MessageSquare, Package, Layers, Loader2, Inbox } from 'lucide-react'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { updateSystemRequestAction } from '@/actions/request.actions'
+import { useLanguage } from '@/lib/i18n/LanguageProvider'
+import { localeFor } from '@/lib/i18n/format'
 import type { SystemRequest } from '@/types/product.types'
 
 export function RequestsTableClient({ requests }: { requests: SystemRequest[] }) {
+  const { t, lang } = useLanguage()
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
 
@@ -29,19 +32,19 @@ export function RequestsTableClient({ requests }: { requests: SystemRequest[] })
   const [actionError, setActionError] = useState<string | null>(null)
 
   const statusMap: Record<string, { label: string, variant: "warning" | "success" | "destructive" }> = {
-    'pending': { label: 'Bekliyor', variant: 'warning' },
-    'approved': { label: 'Onaylandı', variant: 'success' },
-    'rejected': { label: 'Reddedildi', variant: 'destructive' },
+    'pending': { label: t('admin.requests.statusPending'), variant: 'warning' },
+    'approved': { label: t('admin.requests.statusApproved'), variant: 'success' },
+    'rejected': { label: t('admin.requests.statusRejected'), variant: 'destructive' },
   }
 
   const typeMap: Record<string, { label: string, icon: typeof Package }> = {
-    'product': { label: 'Ürün', icon: Package },
-    'inventory': { label: 'Envanter', icon: Layers },
+    'product': { label: t('admin.requests.typeProduct'), icon: Package },
+    'inventory': { label: t('admin.requests.typeInventory'), icon: Layers },
   }
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '—'
-    return new Intl.DateTimeFormat('tr-TR', {
+    return new Intl.DateTimeFormat(localeFor(lang), {
       day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
     }).format(new Date(dateStr))
   }
@@ -67,7 +70,7 @@ export function RequestsTableClient({ requests }: { requests: SystemRequest[] })
       setReviewItem(null)
       setAdminResponse('')
     } else {
-      setActionError(result.error || 'İşlem başarısız.')
+      setActionError(result.error || t('admin.requests.actionFailed'))
     }
   }
 
@@ -79,7 +82,7 @@ export function RequestsTableClient({ requests }: { requests: SystemRequest[] })
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Talep içeriği, ürün adı veya kişiye göre ara..."
+            placeholder={t('admin.requests.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-sm"
@@ -88,7 +91,7 @@ export function RequestsTableClient({ requests }: { requests: SystemRequest[] })
 
         <div className="flex items-center gap-2">
           {(['all', 'pending', 'approved', 'rejected'] as const).map((f) => {
-            const labels: Record<string, string> = { all: 'Tümü', pending: 'Bekleyen', approved: 'Onaylanan', rejected: 'Reddedilen' }
+            const labels: Record<string, string> = { all: t('admin.requests.filterAll'), pending: t('admin.requests.filterPending'), approved: t('admin.requests.filterApproved'), rejected: t('admin.requests.filterRejected') }
             return (
               <button
                 key={f}
@@ -111,13 +114,13 @@ export function RequestsTableClient({ requests }: { requests: SystemRequest[] })
           <table className="w-full text-left border-collapse whitespace-nowrap">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200">
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Tip</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Kalem</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Talep Eden</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider max-w-xs">Açıklama</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Tarih</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Durum</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Eylemler</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t('admin.requests.columnType')}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t('admin.requests.columnItem')}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t('admin.requests.columnRequester')}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider max-w-xs">{t('admin.requests.columnDescription')}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t('admin.requests.columnDate')}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">{t('admin.requests.columnStatus')}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">{t('admin.requests.columnActions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
@@ -126,11 +129,11 @@ export function RequestsTableClient({ requests }: { requests: SystemRequest[] })
                   <td colSpan={7} className="px-0 py-0 bg-slate-50/30">
                     <EmptyState
                       icon={Inbox}
-                      title={search || filter !== 'all' ? "Sonuç Bulunamadı" : "Henüz Talep Yok"}
-                      description={search || filter !== 'all' ? "Filtrelere uygun talep bulunamadı." : "Satış personelinden henüz bir güncelleme talebi gelmemiş."}
+                      title={search || filter !== 'all' ? t('admin.requests.emptySearchTitle') : t('admin.requests.emptyTitle')}
+                      description={search || filter !== 'all' ? t('admin.requests.emptySearchDescription') : t('admin.requests.emptyDescription')}
                       action={search || filter !== 'all' ? (
                         <Button variant="outline" onClick={() => { setSearch(''); setFilter('all') }}>
-                          Filtreleri Temizle
+                          {t('admin.requests.clearFiltersButton')}
                         </Button>
                       ) : undefined}
                     />
@@ -189,11 +192,11 @@ export function RequestsTableClient({ requests }: { requests: SystemRequest[] })
                             }}
                             className="h-8 text-xs font-semibold px-3 bg-white hover:bg-brand-50 hover:text-brand-700 border-slate-200"
                           >
-                            <MessageSquare className="h-3 w-3 mr-1.5" /> İncele
+                            <MessageSquare className="h-3 w-3 mr-1.5" /> {t('admin.requests.reviewButton')}
                           </Button>
                         ) : (
                           <span className="text-xs text-slate-400 italic">
-                            {req.admin_response ? 'Yanıt verildi' : 'İşlendi'}
+                            {req.admin_response ? t('admin.requests.respondedLabel') : t('admin.requests.processedLabel')}
                           </span>
                         )}
                       </td>
@@ -211,9 +214,9 @@ export function RequestsTableClient({ requests }: { requests: SystemRequest[] })
         <Dialog open={!!reviewItem} onOpenChange={(v) => !v && setReviewItem(null)}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Talep İnceleme</DialogTitle>
+              <DialogTitle>{t('admin.requests.reviewDialogTitle')}</DialogTitle>
               <DialogDescription>
-                <strong className="text-slate-800">{reviewItem.requester_name}</strong> tarafından gönderildi.
+                <strong className="text-slate-800">{reviewItem.requester_name}</strong> {t('admin.requests.submittedBySuffix')}
               </DialogDescription>
             </DialogHeader>
 
@@ -227,24 +230,24 @@ export function RequestsTableClient({ requests }: { requests: SystemRequest[] })
               {/* Talep Detayı */}
               <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 space-y-3">
                 <div className="flex justify-between text-xs">
-                  <span className="text-slate-500 font-medium">Tip</span>
+                  <span className="text-slate-500 font-medium">{t('admin.requests.columnType')}</span>
                   <Badge variant="secondary" className="text-[10px]">
                     {typeMap[reviewItem.request_type]?.label || reviewItem.request_type}
                   </Badge>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-slate-500 font-medium">Kalem</span>
+                  <span className="text-slate-500 font-medium">{t('admin.requests.columnItem')}</span>
                   <span className="font-semibold text-slate-800">{reviewItem.item_name}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-slate-500 font-medium">Tarih</span>
+                  <span className="text-slate-500 font-medium">{t('admin.requests.columnDate')}</span>
                   <span className="text-slate-700">{formatDate(reviewItem.created_at)}</span>
                 </div>
               </div>
 
               {/* Açıklama */}
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Talep Açıklaması</Label>
+                <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('admin.requests.requestDescriptionLabel')}</Label>
                 <div className="bg-white border border-slate-200 rounded-lg p-4 text-sm text-slate-700 leading-relaxed">
                   {reviewItem.request_note}
                 </div>
@@ -252,21 +255,19 @@ export function RequestsTableClient({ requests }: { requests: SystemRequest[] })
 
               {/* Admin Yanıtı */}
               <div className="space-y-2">
-                <Label>Admin Yanıtı (Opsiyonel)</Label>
+                <Label>{t('admin.requests.adminResponseLabel')}</Label>
                 <textarea
                   value={adminResponse}
                   onChange={(e) => setAdminResponse(e.target.value)}
                   rows={3}
-                  placeholder="Talep hakkında bir yanıt ekleyin..."
+                  placeholder={t('admin.requests.adminResponsePlaceholder')}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 resize-none"
                 />
               </div>
 
               <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-700 leading-relaxed">
-                <strong>Not:</strong> Onaylamak yalnızca bu talebi kapatır ve satış temsilcisine bildirim gönderir.
-                İlgili ürün/envanter kaydındaki değişikliği ayrı olarak siz{' '}
-                <strong>Ürün Kataloğu</strong> veya <strong>Envanter</strong> sayfasından uygulamalısınız — sistem
-                otomatik bir güncelleme yapmaz.
+                <strong>{t('admin.requests.noteLabel')}</strong> {t('admin.requests.approvalNotePart1')}{' '}
+                <strong>{t('admin.products.catalogTitle')}</strong> {t('admin.requests.approvalNotePart2')} <strong>{t('admin.requests.inventoryLabel')}</strong> {t('admin.requests.approvalNotePart3')}
               </div>
             </div>
 
@@ -278,9 +279,9 @@ export function RequestsTableClient({ requests }: { requests: SystemRequest[] })
                 className="bg-red-600 hover:bg-red-700"
               >
                 {isProcessing ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> İşleniyor...</>
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('admin.requests.processingButton')}</>
                 ) : (
-                  <><XCircle className="mr-2 h-4 w-4" /> Reddet</>
+                  <><XCircle className="mr-2 h-4 w-4" /> {t('admin.requests.rejectButton')}</>
                 )}
               </Button>
               <Button
@@ -290,9 +291,9 @@ export function RequestsTableClient({ requests }: { requests: SystemRequest[] })
                 className="bg-emerald-600 hover:bg-emerald-700 hover:text-emerald-50 text-white"
               >
                 {isProcessing ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> İşleniyor...</>
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('admin.requests.processingButton')}</>
                 ) : (
-                  <><CheckCircle2 className="mr-2 h-4 w-4" /> Talebi Onayla (Otomatik Uygulanmaz)</>
+                  <><CheckCircle2 className="mr-2 h-4 w-4" /> {t('admin.requests.approveButton')}</>
                 )}
               </Button>
             </DialogFooter>

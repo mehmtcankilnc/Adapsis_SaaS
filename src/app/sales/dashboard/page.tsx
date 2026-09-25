@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import DashboardClient from './DashboardClient'
 import type { DashboardActivityRow, DashboardQuoteRow, DashboardTaskRow, RepQuotaRow } from './DashboardClient'
 import { listRepsQuotaAction } from '@/actions/quota.actions'
+import { dictionary } from '@/lib/i18n/dictionary'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,12 +49,12 @@ export default async function DashboardPage({
         .in('id', userIds)
 
       const profileMap = new Map(
-        (profilesData || []).map((p) => [p.id, p.full_name || 'Bilinmeyen'])
+        (profilesData || []).map((p) => [p.id, p.full_name || dictionary.tr["sales.dashboard.unknownRep"]])
       )
 
       rawQuotes = rawQuotes.map((q) => ({
         ...q,
-        creator_name: q.created_by ? (profileMap.get(q.created_by) || 'Bilinmeyen') : 'Sistem',
+        creator_name: q.created_by ? (profileMap.get(q.created_by) || dictionary.tr["sales.dashboard.unknownRep"]) : dictionary.tr["sales.quotes.creatorFallbackSystem"],
       }))
     }
   }
@@ -130,11 +131,11 @@ export default async function DashboardPage({
         .select('id, full_name')
         .in('id', assigneeIds)
       const assigneeMap = new Map(
-        (assigneeProfiles || []).map((p) => [p.id, p.full_name || 'Bilinmeyen'])
+        (assigneeProfiles || []).map((p) => [p.id, p.full_name || dictionary.tr["sales.dashboard.unknownRep"]])
       )
       dueTasks = dueTasks.map((t) => ({
         ...t,
-        assignee_name: t.assigned_to ? (assigneeMap.get(t.assigned_to) || 'Bilinmeyen') : undefined,
+        assignee_name: t.assigned_to ? (assigneeMap.get(t.assigned_to) || dictionary.tr["sales.dashboard.unknownRep"]) : undefined,
       }))
     }
   }

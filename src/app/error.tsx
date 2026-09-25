@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { AlertOctagon, RotateCcw, Home } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useLanguage } from '@/lib/i18n/LanguageProvider'
 
 export default function GlobalError({
   error,
@@ -11,6 +12,8 @@ export default function GlobalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const { t } = useLanguage()
+
   useEffect(() => {
     // Burada dilersek bir tracking servisine (Sentry vb.) hata gönderebiliriz.
     console.error('Unhandled Rejection/Error:', error)
@@ -26,17 +29,17 @@ export default function GlobalError({
           </div>
         </div>
         
-        <h2 className="text-2xl font-extrabold text-slate-900 mb-3 tracking-tight">Kritik Bir Hata Oluştu!</h2>
+        <h2 className="text-2xl font-extrabold text-slate-900 mb-3 tracking-tight">{t('error.title')}</h2>
         <p className="text-slate-500 text-sm mb-8 leading-relaxed px-4">
-          Beklenmedik bir veri işleme hatası yaşandı. Veritabanı bağlantısı kopmuş veya izinsiz bir eylem denemiş olabilirsiniz.
+          {t('error.description')}
         </p>
-        
+
         <div className="flex flex-col gap-3">
           <Button variant="primary" onClick={() => reset()} className="w-full h-12 font-medium text-base shadow-md transition-all">
-            <RotateCcw className="mr-2 h-5 w-5" /> Sayfayı Yeniden Yükle
+            <RotateCcw className="mr-2 h-5 w-5" /> {t('error.reloadButton')}
           </Button>
           <Button variant="outline" onClick={() => window.location.href = '/sales/dashboard'} className="w-full h-12 font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100">
-            <Home className="mr-2 h-5 w-5" /> Panele Geri Dön
+            <Home className="mr-2 h-5 w-5" /> {t('error.backToDashboardButton')}
           </Button>
         </div>
       </div>

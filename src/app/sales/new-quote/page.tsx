@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { Plus, Box } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { T } from '@/components/layout/T'
+import { dictionary } from '@/lib/i18n/dictionary'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,14 +28,14 @@ export default async function NewQuoteSelectPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Ürün Seçimi</h1>
-          <p className="text-sm text-slate-500 mt-1">Konfigüratörü başlatmak için aktif kataloğunuzdan bir ürün seçin.</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight"><T k="sales.newQuote.title" /></h1>
+          <p className="text-sm text-slate-500 mt-1"><T k="sales.newQuote.subtitle" /></p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {!products || products.length === 0 ? (
             <div className="col-span-1 md:col-span-2 text-center py-12 text-slate-500 bg-white rounded-xl border border-slate-200">
-              Şu an sistemde satışa açık (aktif) hiçbir ürün modeli bulunmuyor. Lütfen yöneticiyle iletişime geçin.
+              <T k="sales.newQuote.emptyState" />
             </div>
           ) : (
             products.map((p) => (
@@ -44,19 +46,19 @@ export default async function NewQuoteSelectPage() {
                       <Box className="h-6 w-6" />
                     </div>
                     <div className="text-right">
-                      <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">{p.sku || 'SKU-YOK'}</div>
-                      <div className="text-lg font-black text-slate-800">{formatPrice(p.base_price, p.base_currency)} taban</div>
+                      <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">{p.sku || dictionary.tr["sales.newQuote.noSkuFallback"]}</div>
+                      <div className="text-lg font-black text-slate-800">{formatPrice(p.base_price, p.base_currency)} <T k="sales.newQuote.basePriceSuffix" /></div>
                     </div>
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-slate-900 mb-2">{p.name}</h3>
-                    <p className="text-sm text-slate-500 line-clamp-2">{p.description || 'Açıklama bulunmuyor.'}</p>
+                    <p className="text-sm text-slate-500 line-clamp-2">{p.description || dictionary.tr["sales.newQuote.noDescriptionFallback"]}</p>
                   </div>
                 </CardContent>
                 <div className="p-6 pt-0 mt-auto">
                   <Link href={`/sales/configurator/${p.id}`} className="block w-full">
                     <Button variant="primary" className="w-full font-medium">
-                      Konfigürasyona Başla
+                      <T k="sales.newQuote.startConfigButton" />
                     </Button>
                   </Link>
                 </div>

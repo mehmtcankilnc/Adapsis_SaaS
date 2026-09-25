@@ -3,6 +3,9 @@ import { ClipboardList, MessageSquareText, Clock, CheckCircle2, XCircle } from '
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { T } from '@/components/layout/T'
+import { FormattedDate } from '@/components/layout/FormattedDate'
+import { dictionary } from '@/lib/i18n/dictionary'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,15 +29,10 @@ export default async function SalesRequestsPage() {
   const myRequests = requests || []
 
   const statusConfig: Record<string, { label: string, variant: "warning" | "success" | "destructive", icon: typeof Clock }> = {
-    pending: { label: 'Bekliyor', variant: 'warning', icon: Clock },
-    approved: { label: 'Onaylandı', variant: 'success', icon: CheckCircle2 },
-    rejected: { label: 'Reddedildi', variant: 'destructive', icon: XCircle },
+    pending: { label: dictionary.tr["sales.requests.status.pending"], variant: 'warning', icon: Clock },
+    approved: { label: dictionary.tr["sales.requests.status.approved"], variant: 'success', icon: CheckCircle2 },
+    rejected: { label: dictionary.tr["sales.requests.status.rejected"], variant: 'destructive', icon: XCircle },
   }
-
-  const formatDate = (dateStr: string) =>
-    new Intl.DateTimeFormat('tr-TR', {
-      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-    }).format(new Date(dateStr))
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -43,14 +41,14 @@ export default async function SalesRequestsPage() {
           <div className="flex items-center justify-between h-20">
             <div>
               <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center">
-                <ClipboardList className="h-6 w-6 text-brand-600 mr-2" /> Taleplerim
+                <ClipboardList className="h-6 w-6 text-brand-600 mr-2" /> <T k="sales.requests.title" />
               </h1>
-              <p className="text-sm text-slate-500 mt-1">Gönderdiğiniz güncelleme talepleri ve admin yanıtları.</p>
+              <p className="text-sm text-slate-500 mt-1"><T k="sales.requests.subtitle" /></p>
             </div>
             <div className="flex items-center gap-3">
               <div className="text-center bg-white border border-slate-200 rounded-lg px-4 py-2">
                 <p className="text-lg font-bold text-slate-900">{myRequests.length}</p>
-                <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Toplam</p>
+                <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider"><T k="sales.requests.totalLabel" /></p>
               </div>
             </div>
           </div>
@@ -62,8 +60,8 @@ export default async function SalesRequestsPage() {
           <Card className="border-slate-200 shadow-sm">
             <EmptyState
               icon={ClipboardList}
-              title="Henüz Talebiniz Yok"
-              description="Ürün Kataloğu veya Envanter sayfalarından 'Güncelleme Talep Et' butonunu kullanarak ilk talebinizi oluşturabilirsiniz."
+              title={dictionary.tr["sales.requests.emptyState.title"]}
+              description={dictionary.tr["sales.requests.emptyState.description"]}
             />
           </Card>
         ) : (
@@ -89,7 +87,7 @@ export default async function SalesRequestsPage() {
                         <div>
                           <p className="text-sm font-semibold text-slate-900">{req.item_name}</p>
                           <p className="text-xs text-slate-500">
-                            {req.request_type === 'product' ? 'Ürün' : 'Envanter'} Güncellemesi • {formatDate(req.created_at)}
+                            {req.request_type === 'product' ? dictionary.tr["sales.requests.typeProduct"] : dictionary.tr["sales.requests.typeInventory"]} {dictionary.tr["sales.requests.updateSuffix"]} • <FormattedDate value={req.created_at} options={{ day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }} />
                           </p>
                         </div>
                       </div>
@@ -101,7 +99,7 @@ export default async function SalesRequestsPage() {
 
                     {/* Talep Açıklaması */}
                     <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 mb-3">
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Talebiniz</p>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5"><T k="sales.requests.yourRequestLabel" /></p>
                       <p className="text-sm text-slate-700 leading-relaxed">{req.request_note}</p>
                     </div>
 
@@ -121,7 +119,7 @@ export default async function SalesRequestsPage() {
                               ? 'text-amber-500'
                               : 'text-blue-500'
                         }`}>
-                          Admin Yanıtı
+                          <T k="sales.requests.adminResponseLabel" />
                         </p>
                         <p className={`text-sm leading-relaxed ${
                           req.status === 'approved'
@@ -139,7 +137,7 @@ export default async function SalesRequestsPage() {
                     {!hasResponse && req.status !== 'pending' && (
                       <div className="bg-slate-50 border border-slate-100 rounded-lg p-3">
                         <p className="text-xs text-slate-400 italic text-center">
-                          Admin yanıt eklenmeden işleme alındı.
+                          <T k="sales.requests.processedWithoutResponse" />
                         </p>
                       </div>
                     )}

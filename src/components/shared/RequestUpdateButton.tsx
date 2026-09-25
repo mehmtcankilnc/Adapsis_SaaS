@@ -14,6 +14,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { createSystemRequestAction } from '@/actions/request.actions'
+import { useLanguage } from '@/lib/i18n/LanguageProvider'
 
 interface RequestUpdateButtonProps {
   requestType: 'product' | 'inventory'
@@ -22,6 +23,7 @@ interface RequestUpdateButtonProps {
 }
 
 export function RequestUpdateButton({ requestType, itemId, itemName }: RequestUpdateButtonProps) {
+  const { t } = useLanguage()
   const [isOpen, setIsOpen] = useState(false)
   const [note, setNote] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -39,17 +41,17 @@ export function RequestUpdateButton({ requestType, itemId, itemName }: RequestUp
     setIsSubmitting(false)
 
     if (result.success) {
-      toast.success('Talebiniz iletildi')
+      toast.success(t('requestUpdate.toast.submitSuccess'))
       setIsOpen(false)
       setNote('')
     } else {
-      toast.error('Talep oluşturulamadı', {
+      toast.error(t('requestUpdate.toast.submitError'), {
         description: result.error || undefined,
       })
     }
   }
 
-  const typeLabel = requestType === 'product' ? 'Ürün' : 'Envanter'
+  const typeLabel = requestType === 'product' ? t('requestUpdate.type.product') : t('requestUpdate.type.inventory')
   const TypeIcon = requestType === 'product' ? Package : Layers
   const accentColor = requestType === 'product' ? 'blue' : 'purple'
 
@@ -60,15 +62,15 @@ export function RequestUpdateButton({ requestType, itemId, itemName }: RequestUp
         onClick={() => setIsOpen(true)}
         className="h-8 text-xs font-semibold px-3 bg-white hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300 border-slate-200 transition-colors"
       >
-        <MessageSquarePlus className="h-3 w-3 mr-1.5" /> Güncelleme Talep Et
+        <MessageSquarePlus className="h-3 w-3 mr-1.5" /> {t('requestUpdate.buttonLabel')}
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{typeLabel} Güncelleme Talebi</DialogTitle>
+            <DialogTitle>{typeLabel}{t('requestUpdate.dialog.titleSuffix')}</DialogTitle>
             <DialogDescription>
-              Güncelleme talebinizi aşağıda açıklayın. Admin ekibi tarafından incelenecektir.
+              {t('requestUpdate.dialog.description')}
             </DialogDescription>
           </DialogHeader>
 
@@ -91,25 +93,25 @@ export function RequestUpdateButton({ requestType, itemId, itemName }: RequestUp
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-slate-800 truncate">{itemName}</p>
-                  <p className="text-xs text-slate-500">{typeLabel} Güncellemesi</p>
+                  <p className="text-xs text-slate-500">{typeLabel}{t('requestUpdate.dialog.itemTypeSuffix')}</p>
                 </div>
               </div>
 
               {/* Açıklama Alanı */}
               <div className="flex flex-col gap-1.5">
-                <Label>Açıklama</Label>
+                <Label>{t('requestUpdate.dialog.descriptionLabel')}</Label>
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   rows={3}
                   placeholder={
                     requestType === 'product'
-                      ? 'Örn: Fiyat güncellenmeli, açıklama değiştirilmeli...'
-                      : 'Örn: Stok miktarı yanlış, yeni parti eklenmeli...'
+                      ? t('requestUpdate.dialog.placeholderProduct')
+                      : t('requestUpdate.dialog.placeholderInventory')
                   }
                   className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 resize-none leading-relaxed"
                 />
-                <p className="text-[11px] text-slate-400">Minimum 5 karakter gereklidir.</p>
+                <p className="text-[11px] text-slate-400">{t('requestUpdate.dialog.minCharsHint')}</p>
               </div>
 
             </div>
@@ -122,7 +124,7 @@ export function RequestUpdateButton({ requestType, itemId, itemName }: RequestUp
               onClick={() => setIsOpen(false)}
               disabled={isSubmitting}
             >
-              İptal
+              {t('common.cancel')}
             </Button>
             <Button
               variant="primary"
@@ -131,9 +133,9 @@ export function RequestUpdateButton({ requestType, itemId, itemName }: RequestUp
               disabled={isSubmitting || note.trim().length < 5}
             >
               {isSubmitting ? (
-                <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Gönderiliyor...</>
+                <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> {t('requestUpdate.dialog.submitting')}</>
               ) : (
-                <><Send className="mr-1.5 h-3.5 w-3.5" /> Talebi Gönder</>
+                <><Send className="mr-1.5 h-3.5 w-3.5" /> {t('requestUpdate.dialog.submit')}</>
               )}
             </Button>
           </DialogFooter>

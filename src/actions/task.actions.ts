@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { getErrorMessage } from "@/lib/utils";
+import { getCurrentProfile } from "@/lib/auth";
 import type { TaskStatus } from "@/types/product.types";
 
 export async function getTasksByCustomerAction(customerId: string) {
@@ -35,8 +36,8 @@ export async function createTaskAction(data: {
   try {
     const supabase = await createClient();
 
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) {
+    const profile = await getCurrentProfile();
+    if (!profile) {
       return { success: false, error: "Oturum bulunamadı." };
     }
 
@@ -56,7 +57,8 @@ export async function createTaskAction(data: {
         description: data.description || null,
         due_date: data.due_date || new Date().toISOString(),
         assigned_to: data.assigned_to || null,
-        created_by: user.user.id,
+        created_by: profile.user.id,
+        organization_id: profile.organizationId,
       })
       .select()
       .single();

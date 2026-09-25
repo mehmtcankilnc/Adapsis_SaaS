@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import ConfiguratorClient from './ConfiguratorClient'
 import { configurationToSelections } from '@/lib/quote-config'
+import { dictionary } from '@/lib/i18n/dictionary'
 
 export default async function ConfiguratorPage({
   params,
@@ -92,7 +93,7 @@ export default async function ConfiguratorPage({
         .from('profiles')
         .select('id, full_name')
         .in('id', creatorIds)
-      const creatorMap = new Map((creatorProfiles || []).map((p) => [p.id, p.full_name || 'Bilinmeyen']))
+      const creatorMap = new Map((creatorProfiles || []).map((p) => [p.id, p.full_name || dictionary.tr["sales.configurator.unknownCreatorFallback"]]))
       templates = templates.map((t) => ({
         ...t,
         creator_name: t.created_by ? creatorMap.get(t.created_by) : undefined,

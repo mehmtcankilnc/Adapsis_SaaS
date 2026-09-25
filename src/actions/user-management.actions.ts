@@ -8,18 +8,22 @@ import { getErrorMessage } from "@/lib/utils";
 // ─── Kullanıcı Listesi ───
 export async function listUsersAction() {
   try {
-    await assertAdmin();
+    const { organizationId } = await assertAdmin();
     const admin = createAdminClient();
 
-    // profiles tablosundan tüm kullanıcıları çek
+    // profiles tablosundan sadece bu organizasyonun kullanıcılarını çek
     const { data: profiles, error } = await admin
       .from("profiles")
       .select("id, full_name, role, commission_rate")
+      .eq("organization_id", organizationId)
       .order("full_name", { ascending: true });
 
     if (error) throw error;
 
-    // auth.users'tan e-posta bilgilerini al
+    // auth.users'tan e-posta bilgilerini al — listUsers org'a göre filtrelenemediği
+    // için tüm kullanıcılar çekilip yukarıdaki (zaten org'a filtrelenmiş) profiles
+    // listesindeki id'lerle eşleştiriliyor (aşağıdaki .find), böylece başka bir
+    // organizasyonun kullanıcısı asla sonuca sızmıyor.
     const {
       data: { users: authUsers },
       error: authError,
@@ -33,6 +37,7 @@ export async function listUsersAction() {
     const { data: targets } = await admin
       .from("sales_targets")
       .select("profile_id, target_amount, target_currency")
+      .eq("organization_id", organizationId)
       .eq("period_month", periodMonth);
     const targetMap = new Map((targets || []).map((t) => [t.profile_id, t]));
 
@@ -67,7 +72,7 @@ export async function createUserAction(data: {
   role: "admin" | "sales";
 }) {
   try {
-    await assertAdmin();
+    const { organizationId } = await assertAdmin();
 
     // Validasyon
     if (!data.email || !data.email.includes("@")) {
@@ -93,6 +98,7 @@ export async function createUserAction(data: {
       user_metadata: {
         full_name: data.full_name.trim(),
         role: data.role,
+        organization_id: organizationId,
       },
     });
 
@@ -118,7 +124,7 @@ export async function updateUserAction(
   data: { full_name?: string; role?: "admin" | "sales" },
 ) {
   try {
-    await assertAdmin();
+    const { organizationId } = await assertAdmin();
     const admin = createAdminClient();
 
     // profiles tablosunu güncelle
@@ -130,10 +136,13 @@ export async function updateUserAction(
       return { success: false, error: "Güncelleme verisi bulunamadı." };
     }
 
+    // admin client RLS'i bypass ettiği için organization_id kontrolünü burada
+    // elle yapıyoruz — başka bir organizasyonun kullanıcısı güncellenemesin.
     const { error } = await admin
       .from("profiles")
       .update(updateData)
-      .eq("id", userId);
+      .eq("id", userId)
+      .eq("organization_id", organizationId);
 
     if (error) throw error;
 
@@ -157,14 +166,25 @@ export async function updateUserAction(
 // ─── Kullanıcı Silme ───
 export async function deleteUserAction(userId: string) {
   try {
-    const currentAdmin = await assertAdmin();
+    const { user: currentUser, organizationId } = await assertAdmin();
 
     // Kendini silemesin
-    if (currentAdmin.id === userId) {
+    if (currentUser.id === userId) {
       return { success: false, error: "Kendi hesabınızı silemezsiniz." };
     }
 
     const admin = createAdminClient();
+
+    // Başka bir organizasyonun kullanıcısı silinemesin (admin client RLS
+    // bypass ettiği için bu kontrolü elle yapıyoruz).
+    const { data: targetProfile } = await admin
+      .from("profiles")
+      .select("organization_id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (targetProfile?.organization_id !== organizationId) {
+      return { success: false, error: "Bu kullanıcı bulunamadı." };
+    }
 
     // auth.admin üzerinden sil — CASCADE ile profiles da silinir
     const { error } = await admin.auth.admin.deleteUser(userId);

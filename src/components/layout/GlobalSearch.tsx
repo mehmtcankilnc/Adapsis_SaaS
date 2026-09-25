@@ -7,12 +7,13 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { globalSearchAction, type GlobalSearchResult } from "@/actions/global-search.actions";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import type { DictionaryKey } from "@/lib/i18n/dictionary";
 
-const QUOTE_STATUS_LABELS: Record<string, string> = {
-  pending: "Değerlendirmede",
-  accepted: "Satış Onaylandı",
-  rejected: "Teklif Reddedildi",
-  pending_admin_approval: "İskonto Onayı Bekliyor",
+const QUOTE_STATUS_KEYS: Record<string, DictionaryKey> = {
+  pending: "sales.quotes.detail.status.pending",
+  accepted: "sales.quotes.detail.status.accepted",
+  rejected: "sales.quotes.detail.status.rejected",
+  pending_admin_approval: "sales.quotes.detail.status.pendingAdminApproval",
 };
 
 function ResultGroup({ title, icon: Icon, children }: { title: string; icon: LucideIcon; children: React.ReactNode }) {
@@ -129,7 +130,7 @@ export function GlobalSearch({
           type="button"
           onClick={openPalette}
           className="p-2 -mr-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
-          aria-label="Ara"
+          aria-label={t("search.ariaLabel")}
         >
           <Search className="h-5 w-5" />
         </button>
@@ -145,7 +146,7 @@ export function GlobalSearch({
             <Search className="h-4 w-4 text-slate-400 shrink-0" />
             <Input
               autoFocus
-              placeholder="Müşteri, teklif veya ürün ara..."
+              placeholder={t("search.placeholder")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="border-0 shadow-none focus-visible:ring-0 px-0 h-8"
@@ -153,7 +154,7 @@ export function GlobalSearch({
           </div>
           <div className="max-h-96 overflow-y-auto p-2">
             {!isQueryLongEnough && (
-              <p className="text-sm text-slate-400 text-center py-8">En az 2 karakter girin.</p>
+              <p className="text-sm text-slate-400 text-center py-8">{t("search.minChars")}</p>
             )}
             {isQueryLongEnough && loading && (
               <div className="flex items-center justify-center py-8">
@@ -163,10 +164,10 @@ export function GlobalSearch({
             {isQueryLongEnough && !loading && results && (
               <>
                 {!hasResults && (
-                  <p className="text-sm text-slate-400 text-center py-8">Sonuç bulunamadı.</p>
+                  <p className="text-sm text-slate-400 text-center py-8">{t("search.noResults")}</p>
                 )}
                 {results.customers.length > 0 && (
-                  <ResultGroup title="Müşteriler" icon={Users}>
+                  <ResultGroup title={t("search.groupCustomers")} icon={Users}>
                     {results.customers.map((c) => (
                       <ResultRow
                         key={c.id}
@@ -178,19 +179,21 @@ export function GlobalSearch({
                   </ResultGroup>
                 )}
                 {results.quotes.length > 0 && (
-                  <ResultGroup title="Teklifler" icon={FileText}>
+                  <ResultGroup title={t("search.groupQuotes")} icon={FileText}>
                     {results.quotes.map((q) => (
                       <ResultRow
                         key={q.id}
                         onClick={() => go(`/sales/quotes/${q.id}`)}
                         primary={q.customer_company}
-                        secondary={`${q.final_price} ${q.currency} · ${QUOTE_STATUS_LABELS[q.status] || q.status}`}
+                        secondary={`${q.final_price} ${q.currency} · ${
+                          QUOTE_STATUS_KEYS[q.status] ? t(QUOTE_STATUS_KEYS[q.status]) : q.status
+                        }`}
                       />
                     ))}
                   </ResultGroup>
                 )}
                 {results.products.length > 0 && (
-                  <ResultGroup title="Ürünler" icon={Package}>
+                  <ResultGroup title={t("search.groupProducts")} icon={Package}>
                     {results.products.map((p) => (
                       <ResultRow
                         key={p.id}
