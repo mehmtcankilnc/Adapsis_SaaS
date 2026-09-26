@@ -1,36 +1,113 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Adapsis
+
+**Enterprise B2B dynamic product configurator & sales management platform.**
+
+Built for factories and custom manufacturers (transformers, industrial panels, machinery, etc.) where products aren't defined by fixed attributes — a configurator + CRM + quote management system with a fully dynamic product model.
+
+🔗 **Demo:** [adapsis.vercel.app](https://adapsis.vercel.app)
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Architecture Notes](#architecture-notes)
+- [Getting Started](#getting-started)
+- [Demo Credentials](#demo-credentials)
+- [Project Structure](#project-structure)
+- [Database](#database)
+
+## Features
+
+**Product & Pricing**
+- Unlimited dynamic variation groups and options (JSONB-based, no fixed schema)
+- Price effect types: fixed amount, percentage, multiplier
+- Base price + multi-currency support (live exchange rate conversion)
+- Inventory/stock reservation tied to selected options
+
+**Sales Configurator**
+- Step-by-step configuration with dependent dropdowns
+- Real-time total price calculation
+- Quote templates (save/reuse common configurations)
+- Quote duplication
+
+**CRM**
+- Customer, contact, activity (call/email/meeting) and task tracking
+- Sales pipeline for opportunities (lead → qualified → proposal → negotiation → won/lost)
+- Customer document management (Supabase Storage)
+
+**Admin & Reporting**
+- Admin approval workflow (quotes above discount threshold, product/inventory requests)
+- Sales quota and commission tracking
+- Role-based access: `admin` / `sales`
+- Multi-tenant (multiple organizations) support
+
+**Platform**
+- Global search (⌘K / Ctrl+K) — customers, quotes, products
+- i18n (TR/EN)
+- Daily automatic demo data reseed via Vercel Cron
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router), React 19, TypeScript |
+| Backend / DB | Supabase (PostgreSQL, Auth, Storage, Row-Level Security) |
+| UI | Tailwind CSS 4, Radix UI, Framer Motion, Recharts |
+| State | Zustand |
+| Tables | TanStack Table |
+| Deploy | Vercel |
+
+## Architecture Notes
+
+- **Dynamic product model:** Products have no predefined columns; each one is defined through the `product_variants` table via a JSONB `options` field. Adding a new attribute never requires a schema change.
+- **Multi-currency:** All prices are stored in the database as `base_currency` (USD) and converted to the live rate on the sales screen.
+- **Multi-tenant:** Every row is scoped by `organization_id`, isolated via RLS policies to prevent cross-organization data leaks.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
+cp .env.local.example .env.local   # fill in your Supabase URL / anon key / secret key
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app runs at [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Demo Credentials
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+🔗 [adapsis.vercel.app/login](https://adapsis.vercel.app/login)
 
-## Learn More
+| Role | Email | Password |
+|---|---|---|
+| Admin | `admin@adapsis.com` | `Portfolyo2026!` |
+| Sales | `satis@adapsis.com` | `Portfolyo2026!` |
+| Sales | `mehmet.satis@adapsis.com` | `Portfolyo2026!` |
+| Sales | `zeynep.satis@adapsis.com` | `Portfolyo2026!` |
 
-To learn more about Next.js, take a look at the following resources:
+> Demo data is automatically reset and reseeded every night at 03:00 (Vercel Cron).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/app/
+├── admin/            # Product builder, inventory, pipeline, requests, settings
+├── sales/            # Configurator, dashboard, quotes, new quote
+├── api/              # Cron (demo reseed), inventory list, exchange rates
+├── login/            # Authentication
+└── shared/           # Shared components
 
-## Deploy on Vercel
+scripts/
+├── seed-demo.mjs     # Demo organization + users + full data set
+├── create-admin.mjs  # Create a single admin user
+└── create-sales.mjs  # Create a single sales user
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+supabase/
+├── migrations/       # Sequential SQL migrations
+└── seed.sql
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Database
+
+The schema is managed as sequential SQL files under `supabase/migrations/` (up to migration 033): products/variants, inventory, customers/contacts, activities/tasks/opportunities, quotes/templates, system requests, sales quotas, and multi-tenant organization support.
