@@ -1,8 +1,20 @@
 # Adapsis
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js" />
+  <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" />
+  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind CSS" />
+  <img src="https://img.shields.io/badge/Zustand-5-443E38?style=for-the-badge" alt="Zustand" />
+</p>
+
 **Enterprise B2B dynamic product configurator & sales management platform.**
 
 Built for factories and custom manufacturers (transformers, industrial panels, machinery, etc.) where products aren't defined by fixed attributes — a configurator + CRM + quote management system with a fully dynamic product model.
+
+> [!NOTE]
+> 🏭 **Project Status:** Functional and live as a portfolio demo. Demo data is reseeded nightly, so feel free to click around.
 
 🔗 **Demo:** [adapsis.vercel.app](https://adapsis.vercel.app)
 
@@ -67,11 +79,34 @@ Built for factories and custom manufacturers (transformers, industrial panels, m
 
 ## Getting Started
 
-```bash
-npm install
-cp .env.local.example .env.local   # fill in your Supabase URL / anon key / secret key
-npm run dev
-```
+> [!IMPORTANT]
+> A Supabase project is required. Apply the SQL files in `supabase/migrations/` in order, then add your keys to `.env.local`.
+
+1. **Clone the repository and install dependencies:**
+
+   ```bash
+   git clone https://github.com/mehmtcankilnc/Adapsis_SaaS.git
+   cd Adapsis_SaaS
+   npm install
+   ```
+
+2. **Configure environment variables:**
+
+   ```bash
+   cp .env.local.example .env.local   # fill in your Supabase URL / anon key / secret key
+   ```
+
+3. **(Optional) Seed demo data:**
+
+   ```bash
+   node scripts/seed-demo.mjs
+   ```
+
+4. **Start the dev server:**
+
+   ```bash
+   npm run dev
+   ```
 
 The app runs at [http://localhost:3000](http://localhost:3000).
 
